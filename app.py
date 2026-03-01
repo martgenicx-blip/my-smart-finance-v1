@@ -1,17 +1,7 @@
-import os
-import subprocess
-import sys
 import streamlit as st
 import pandas as pd
 from datetime import date
-
-# --- බලෙන්ම Library එක Install කරවන කොටස ---
-try:
-    from st_gsheets_connection import GSheetsConnection
-except ImportError:
-    # මෙතනදී st-gsheets-connection library එක නැතිනම් එය install කරයි
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "st-gsheets-connection"])
-    from st_gsheets_connection import GSheetsConnection
+from st_gsheets_connection import GSheetsConnection
 
 # --- පිටුවේ සැකසුම් (Page Config) ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
@@ -33,45 +23,38 @@ else:
     # ඔයාගේ Google Sheet URL එක
     url = "https://docs.google.com/spreadsheets/d/1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8/edit#gid=0"
     
-    # සම්බන්ධතාවය ගොඩනැගීම
+    # සම්බන්ධතාවය ගොඩනැගීම (Secrets හරහා)
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(spreadsheet=url, ttl=0)
     except Exception as e:
-        st.error("Google Sheet එකට සම්බන්ධ විය නොහැක. කරුණාකර Share Settings පරීක්ෂා කරන්න.")
+        st.error("Google Sheet එකට සම්බන්ධ විය නොහැක. කරුණාකර Secrets සහ Share Settings පරීක්ෂා කරන්න.")
         st.stop()
 
     st.title("💰 Smart Finance Tracker")
     
-    # Tabs මගින් දත්ත ඇතුළත් කිරීම සහ බැලීම වෙන් කිරීම
-    tab1, tab2 = st.tabs(["➕ අලුත් දත්ත ඇතුළත් කරන්න", "📊 වාර්තාව බලන්න"])
+    # Tabs මගින් දත්ත ඇතුළත් කිරීම සහ බැලීම
+    tab1, tab2 = st.tabs(["➕ අලුත් දත්ත", "📊 ඉතිහාසය"])
 
     with tab1:
         with st.form("add_data", clear_on_submit=True):
             col1, col2 = st.columns(2)
             t_type = col1.selectbox("වර්ගය", ["Expense", "Income"])
             t_amt = col2.number_input("මුදල (LKR)", min_value=0.0, step=100.0)
-            t_cat = st.selectbox("ප්‍රවර්ගය", ["Food", "Travel", "Bills", "Rent", "Salary", "Shopping", "Other"])
-            t_note = st.text_input("විස්තරය (Description)")
+            t_cat = st.selectbox("ප්‍රවර්ගය", ["Food", "Travel", "Bills", "Rent", "Salary", "Other"])
+            t_note = st.text_input("විස්තරය")
             
             if st.form_submit_button("Save to Cloud"):
                 if t_amt > 0:
-                    # අලුත් පේළියක් සෑදීම
-                    new_data = pd.DataFrame([[str(date.today()), t_cat, t_amt, t_note, t_type]], 
+                    new_row = pd.DataFrame([[str(date.today()), t_cat, t_amt, t_note, t_type]], 
                                            columns=["Date", "Category", "Amount", "Description", "Type"])
-                    # පරණ දත්ත සමඟ එකතු කිරීම
-                    updated_df = pd.concat([df, new_data], ignore_index=True)
-                    # Google Sheet එකට Update කිරීම
+                    updated_df = pd.concat([df, new_row], ignore_index=True)
                     conn.update(spreadsheet=url, data=updated_df)
-                    st.success("දත්ත සාර්ථකව සුරැකුණා! ✅")
+                    st.success("සාර්ථකව සුරැකුණා! ✅")
                     st.rerun()
-                else:
-                    st.warning("කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න.")
 
     with tab2:
-        st.subheader("අන්තිමට ඇතුළත් කළ ගනුදෙනු")
         if not df.empty:
-            # අලුත්ම දත්ත උඩට එන සේ පෙන්වීම
             st.dataframe(df.iloc[::-1], use_container_width=True)
         else:
             st.info("දත්ත කිසිවක් නැත.")
