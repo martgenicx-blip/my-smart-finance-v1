@@ -1,84 +1,72 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from streamlit_gsheets import GSheetsConnection
+import gspread
+from google.oauth2.service_account import Credentials
 
-# --- පිටුවේ සැකසුම් (Page Config) ---
-st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
+st.set_page_config(page_title="Smart Finance v1", page_icon="💰")
 
-# --- මුරපදය පරීක්ෂාව (Login Logic) ---
+# --- Login Logic ---
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if not st.session_state.auth:
-    st.title("🔐 Login to Pocket Finance")
+    st.title("🔐 Login")
     pwd = st.text_input("Enter Password", type="password")
     if st.button("Login"):
         if pwd == "###1984***":
             st.session_state.auth = True
             st.rerun()
-        else:
-            st.error("වැරදි මුරපදයක්! කරුණාකර නැවත උත්සාහ කරන්න.")
 else:
-    # --- Google Sheet සම්බන්ධතාවය ---
+    # --- Google Sheets Connection (Direct via gspread) ---
     try:
-        # Secrets වල ඇති විස්තර ඇසුරින් සම්බන්ධ වේ
-        conn = st.connection("gsheets", type=GSheetsConnection)
+        # Secrets වලින් දත්ත කියවීම
+        scope = ["https://www.googleapis.com/auth/spreadsheets"]
+        creds_dict = {
+            "type": st.secrets["connections"]["gsheets"]["type"],
+            "project_id": st.secrets["connections"]["gsheets"]["project_id"],
+            "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
+            "private_key": st.secrets["connections"]["gsheets"]["private_key"],
+            "client_email": st.secrets["connections"]["gsheets"]["client_email"],
+            "client_id": st.secrets["connections"]["gsheets"]["client_id"],
+            "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
+            "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
+            "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
+            "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"],
+        }
         
-        # දත්ත කියවීම (Sheet එකේ නම "Sheet1" බව තහවුරු කරගන්න)
-        # Response 200 අවුල මගහරවා ගැනීමට සෘජුවම DataFrame එක ලබාගනිමු
-        df = conn.read(worksheet="Sheet1", ttl=0)
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+        client = gspread.authorize(creds)
         
-        # ලබාගත් දත්ත DataFrame එකක්දැයි පරීක්ෂා කිරීම
-        if df is None or not isinstance(df, pd.DataFrame):
-            st.error("දත්ත කියවීමේ දෝෂයකි. කරුණාකර Google Sheet එකේ දත්ත ඇති බව බලන්න.")
-            st.stop()
-            
+        # Sheet ID එක Secrets වලින් හෝ මෙතන කෙලින්ම දෙන්න
+        sheet_id = "1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8"
+        sh = client.open_by_key(sheet_id)
+        worksheet = sh.worksheet("Sheet1") # Sheet එකේ නම Sheet1 විය යුතුයි
+        
+        # Data කියවීම
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+        
     except Exception as e:
-        st.error(f"❌ සම්බන්ධතාවයේ දෝෂයක්: {e}")
+        st.error(f"❌ Connection Error: {e}")
         st.stop()
 
     st.title("💰 Smart Finance Tracker")
-    
-    # Tabs මගින් දත්ත ඇතුළත් කිරීම සහ බැලීම
-    tab1, tab2 = st.tabs(["➕ අලුත් දත්ත", "📊 ඉතිහාසය"])
+    tab1, tab2 = st.tabs(["➕ Add Data", "📊 History"])
 
     with tab1:
-        st.subheader("අලුත් ගනුදෙනුවක් ඇතුළත් කරන්න")
-        with st.form("add_data", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            t_type = col1.selectbox("වර්ගය", ["Expense", "Income"])
-            t_amt = col2.number_input("මුදල (LKR)", min_value=0.0, step=100.0)
+        with st.form("add_form", clear_on_submit=True):
+            t_type = st.selectbox("Type", ["Expense", "Income"])
+            t_amt = st.number_input("Amount", min_value=0.0)
+            t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Salary", "Other"])
+            t_note = st.text_input("Description")
             
-            t_cat = st.selectbox("ප්‍රවර්ගය", ["Food", "Travel", "Bills", "Rent", "Salary", "Shopping", "Other"])
-            t_note = st.text_input("විස්තරය (Description)")
-            
-            if st.form_submit_button("Save to Cloud"):
-                if t_amt > 0:
-                    # අලුත් පේළිය සෑදීම
-                    new_row = pd.DataFrame([{
-                        "Date": str(date.today()),
-                        "Category": t_cat,
-                        "Amount": t_amt,
-                        "Description": t_note,
-                        "Type": t_type
-                    }])
-                    
-                    # පරණ දත්ත සමඟ අලුත් පේළිය එකතු කිරීම
-                    updated_df = pd.concat([df, new_row], ignore_index=True)
-                    
-                    # Google Sheet එක Update කිරීම
-                    conn.update(worksheet="Sheet1", data=updated_df)
-                    
-                    st.success("දත්ත සාර්ථකව Cloud එකට සුරැකුණා! ✅")
-                    st.rerun()
-                else:
-                    st.warning("කරුණාකර මුදලක් ඇතුළත් කරන්න.")
+            if st.form_submit_button("Save"):
+                new_row = [str(date.today()), t_cat, t_amt, t_note, t_type]
+                worksheet.append_row(new_row)
+                st.success("Saved! ✅")
+                st.rerun()
 
     with tab2:
-        st.subheader("පසුගිය ගනුදෙනු විස්තර")
         if not df.empty:
-            # අලුත්ම දත්ත උඩට එන සේ පෙන්වීම
             st.dataframe(df.iloc[::-1], use_container_width=True)
-        else:
-            st.info("දත්ත කිසිවක් මෙතෙක් ඇතුළත් කර නැත.")
