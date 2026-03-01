@@ -10,7 +10,6 @@ st.set_page_config(page_title="Finance Tracker Pro", page_icon="💰", layout="w
 # --- CSS (Hover Colors & Layout) ---
 st.markdown("""
     <style>
-    /* බොත්තම් වල සාමාන්‍ය පෙනුම */
     div.stButton > button {
         width: 100% !important;
         height: 80px !important;
@@ -50,7 +49,7 @@ st.markdown("""
 if "show_form" not in st.session_state:
     st.session_state.show_form = None
 
-# --- Google Sheets Connection ---
+# --- Google Sheets Connection (Fixed Key Error) ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds_dict = {
@@ -63,7 +62,7 @@ try:
         "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
         "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
         "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["connections"]["gsheetsheets"]["client_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"], # මෙතන තමයි වැරදිලා තිබුණේ
     }
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
@@ -72,9 +71,9 @@ try:
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     
-    # Date column එක හරියට format කරගමු filter කරන්න ලේසි වෙන්න
     if not df.empty:
-        df['Date'] = pd.to_datetime(df['Date']).dt.date
+        # Date එක string එකක සිට date object එකකට හරවමු filtering වලට
+        df['Date_Only'] = pd.to_datetime(df['Date']).dt.date
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except Exception as e:
     st.error(f"❌ Connection Error: {e}")
@@ -97,7 +96,6 @@ if st.session_state.show_form in ["Income", "Expense"]:
     with st.container():
         st.subheader(f"Add New {t_type}")
         with st.form("entry_form", clear_on_submit=True):
-            # මෙතනින් පුළුවන් පරණ දිනයක් වුණත් තෝරන්න
             selected_date = st.date_input("Select Date", date.today())
             amt = st.number_input("Amount (LKR)", min_value=0.0, step=100.0)
             cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Medical", "Shopping", "Other"])
@@ -105,7 +103,6 @@ if st.session_state.show_form in ["Income", "Expense"]:
             
             if st.form_submit_button("Save Record ✅"):
                 if amt > 0:
-                    # වෙලාවත් එක්කම Save කරනවා (නමුත් date එක ඔයා තෝරපු එක)
                     current_time = datetime.now().strftime("%H:%M:%S")
                     final_timestamp = f"{selected_date} {current_time}"
                     worksheet.append_row([final_timestamp, cat, amt, note, t_type])
@@ -129,12 +126,12 @@ st.write("---")
 st.write("### 🔍 Filter & History")
 if not df.empty:
     f_col1, f_col2 = st.columns(2)
-    start_date = f_col1.date_input("Start Date", df['Date'].min())
+    start_date = f_col1.date_input("Start Date", df['Date_Only'].min())
     end_date = f_col2.date_input("End Date", date.today())
 
-    # Filter දත්ත
-    mask = (df['Date'] >= start_date) & (df['Date'] <= end_date)
-    filtered_df = df.loc[mask].iloc[::-1] # අලුත් ඒවා උඩට
+    # Filter දත්ත (Date_Only පාවිච්චි කරමු)
+    mask = (df['Date_Only'] >= start_date) & (df['Date_Only'] <= end_date)
+    filtered_df = df.loc[mask].iloc[::-1]
 
     if not filtered_df.empty:
         for idx, row in filtered_df.iterrows():
