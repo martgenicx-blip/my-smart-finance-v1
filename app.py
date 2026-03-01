@@ -28,8 +28,6 @@ st.markdown("""
         background-color: white; padding: 15px; border-radius: 10px;
         border: 1px solid #eee; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    .inc-mark { color: #28a745; font-weight: bold; font-size: 20px; }
-    .exp-mark { color: #dc3545; font-weight: bold; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -70,8 +68,6 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
         st.subheader(f"Add {st.session_state.show_form}")
         with st.form("entry_form", clear_on_submit=True):
             d = st.date_input("Date", date.today())
-            
-            # මෙන්න මෙතන තමයි වෙනස් කළේ: value=None දැම්මම ක්ලික් කළ ගමන් මැකෙනවා
             amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00", min_value=0.0)
             
             if st.session_state.show_form == "Transfer":
@@ -100,19 +96,7 @@ if not df.empty:
     sc2.markdown(f'<div class="summary-card">Total Expense<br><h3 style="color:red;">LKR {te:,.0f}</h3></div>', unsafe_allow_html=True)
     sc3.markdown(f'<div class="summary-card">Net Balance<br><h3>LKR {ti-te:,.0f}</h3></div>', unsafe_allow_html=True)
 
-# --- 3. Charts Section ---
-if st.session_state.show_form == "Charts" and not df.empty:
-    st.write("---")
-    st.subheader("📊 Visual Analysis")
-    ch1, ch2 = st.columns(2)
-    exp_df = df[df['Type'] == 'Expense']
-    if not exp_df.empty:
-        ch1.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4, title="Expenses"), use_container_width=True)
-    
-    daily = df.groupby('Date_Only')['Amount'].sum().reset_index()
-    ch2.plotly_chart(px.bar(daily, x='Date_Only', y='Amount', title="Daily Spending"), use_container_width=True)
-
-# --- 4. Filtering & History ---
+# --- History Header & Filtering ---
 st.write("---")
 st.subheader("📜 Recent Transactions")
 
@@ -129,22 +113,26 @@ if not df.empty:
         for idx, row in filtered_df.iterrows():
             col_data, col_del = st.columns([0.9, 0.1])
             
+            # --- පාට වෙනස් කරන Inline Logic එක මෙන්න ---
             if row['Type'] == "Income":
-                mark = '<span class="inc-mark">+</span>'
-                color = "#28a745"
+                text_color = "#28a745" # Green
+                mark = "+"
             elif row['Type'] == "Expense":
-                mark = '<span class="exp-mark">-</span>'
-                color = "#dc3545"
+                text_color = "#dc3545" # Red
+                mark = "-"
             else:
-                mark = '<span style="color:orange;">🔄</span>'
-                color = "orange"
+                text_color = "#ff8c00" # Orange for Transfer
+                mark = "🔄"
             
             with col_data:
+                # මෙතන කෙලින්ම style attribute එක පාවිච්චි කළා පාට ස්ථිර කරන්න
                 st.markdown(f"""
-                    <div style="background:white; padding:15px; border-radius:10px; border-left:8px solid {color}; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <span style="float:right; font-weight:bold; color:{color}; font-size:18px;">{mark} LKR {row['Amount']:,.0f}</span>
+                    <div style="background:white; padding:15px; border-radius:10px; border-left:8px solid {text_color}; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <span style="float:right; font-weight:bold; color:{text_color}; font-size:20px;">
+                            {mark} LKR {row['Amount']:,.0f}
+                        </span>
                         <div style="font-size:12px; color:gray;">📅 {row['Date']}</div>
-                        <div style="font-weight:bold; font-size:16px;">{row['Category']}</div>
+                        <div style="font-weight:bold; font-size:16px; color:#333;">{row['Category']}</div>
                         <div style="font-size:14px; color:#555;">{row['Description']}</div>
                         {f"<small style='color:orange;'>{row['From_Account']} ➡️ {row['To_Account']}</small>" if row['Type'] == 'Transfer' else ''}
                     </div>
