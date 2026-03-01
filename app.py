@@ -8,40 +8,31 @@ import plotly.express as px
 # --- පිටුවේ සැකසුම් ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- Custom CSS (ලස්සන කරන්න) ---
+# --- Custom CSS ---
 st.markdown("""
     <style>
-    .main { background-color: #f5f7f9; }
-    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #2ecc71; color: white; }
-    .login-card { background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; }
+    .delete-btn>button { background-color: #ff4b4b; color: white; border: none; }
+    .delete-btn>button:hover { background-color: #ff3333; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- මුරපදය පරීක්ෂාව (ලස්සන කළ Login Screen එක) ---
+# --- මුරපදය පරීක්ෂාව ---
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if not st.session_state.auth:
-    # Login එක මැදට ගන්න Columns පාවිච්චි කරමු
     _, col_mid, _ = st.columns([1, 1, 1])
-    
     with col_mid:
-        st.write("#") # පොඩි ඉඩක්
-        st.image("https://cdn-icons-png.flaticon.com/512/2850/2850358.png", width=100) # පොඩි Icon එකක්
-        st.title("Welcome Back!")
-        st.subheader("🔐 Login to Pocket Finance")
-        
-        with st.container():
-            pwd = st.text_input("Enter Secret Password", type="password", placeholder="Your password here...")
-            if st.button("Login Now 🚀"):
-                if pwd == "###1984***":
-                    st.session_state.auth = True
-                    st.rerun()
-                else:
-                    st.error("වැරදි මුරපදයක්! ආයෙත් උත්සාහ කරන්න.")
-    st.stop() # Login වෙනකම් ඉතිරි Code එක වැඩ කරන්නේ නැහැ
+        st.title("🔐 Login")
+        pwd = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if pwd == "###1984***":
+                st.session_state.auth = True
+                st.rerun()
+    st.stop()
 
-# --- මෙතන සිට ඇතුළත Code එක (Dashboard) ---
+# --- Google Sheets Connection ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds_dict = {
@@ -56,66 +47,73 @@ try:
         "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
         "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"],
     }
-    
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
-    
-    sheet_id = "1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8"
-    sh = client.open_by_key(sheet_id)
+    sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
     
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
-    
 except Exception as e:
     st.error(f"❌ Connection Error: {e}")
     st.stop()
 
-# --- UI (Dashboard Content) ---
+# --- Dashboard ---
 st.title("💰 Smart Finance Dashboard")
 
 if not df.empty:
-    total_income = df[df['Type'] == 'Income']['Amount'].sum()
-    total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
-    balance = total_income - total_expense
-
+    total_inc = df[df['Type'] == 'Income']['Amount'].sum()
+    total_exp = df[df['Type'] == 'Expense']['Amount'].sum()
+    
     m1, m2, m3 = st.columns(3)
-    m1.metric("Total Income", f"LKR {total_income:,.2f}")
-    m2.metric("Total Expense", f"LKR {total_expense:,.2f}", delta=f"-{total_expense:,.2f}", delta_color="inverse")
-    m3.metric("Net Balance", f"LKR {balance:,.2f}")
-
-    st.divider()
-    c1, c2 = st.columns(2)
-    with c1:
-        st.subheader("Expense by Category")
-        expense_df = df[df['Type'] == 'Expense']
-        if not expense_df.empty:
-            fig_pie = px.pie(expense_df, values='Amount', names='Category', hole=0.4)
-            st.plotly_chart(fig_pie, use_container_width=True)
-    with c2:
-        st.subheader("Income vs Expense")
-        sum_df = pd.DataFrame({"Type": ["Income", "Expense"], "Amount": [total_income, total_expense]})
-        fig_bar = px.bar(sum_df, x='Type', y='Amount', color='Type', color_discrete_map={"Income": "#2ecc71", "Expense": "#e74c3c"})
-        st.plotly_chart(fig_bar, use_container_width=True)
+    m1.metric("Total Income", f"LKR {total_inc:,.2f}")
+    m2.metric("Total Expense", f"LKR {total_exp:,.2f}")
+    m3.metric("Balance", f"LKR {total_inc - total_exp:,.2f}")
 
 st.divider()
-tab1, tab2 = st.tabs(["➕ Add Entry", "📊 History Log"])
+
+tab1, tab2, tab3 = st.tabs(["➕ Add Entry", "📊 Analysis", "🗑️ Manage Data"])
 
 with tab1:
     with st.form("add_form", clear_on_submit=True):
-        col_a, col_b = st.columns(2)
-        t_type = col_a.selectbox("Type", ["Expense", "Income"])
-        t_amt = col_b.number_input("Amount (LKR)", min_value=0.0)
-        t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Rent", "Salary", "Shopping", "Other"])
+        c1, c2 = st.columns(2)
+        t_type = c1.selectbox("Type", ["Expense", "Income"])
+        t_amt = c2.number_input("Amount", min_value=0.0)
+        t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Salary", "Shopping", "Other"])
         t_note = st.text_input("Description")
         if st.form_submit_button("Save Entry"):
-            if t_amt > 0:
-                new_row = [str(date.today()), t_cat, t_amt, t_note, t_type]
-                worksheet.append_row(new_row)
-                st.success("Saved Successfully! ✅")
-                st.rerun()
+            worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, t_type])
+            st.success("Saved! ✅")
+            st.rerun()
 
 with tab2:
     if not df.empty:
-        st.dataframe(df.iloc[::-1], use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            exp_df = df[df['Type'] == 'Expense']
+            if not exp_df.empty:
+                st.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4), use_container_width=True)
+        with c2:
+            st.plotly_chart(px.bar(df.groupby('Type')['Amount'].sum().reset_index(), x='Type', y='Amount', color='Type'), use_container_width=True)
+
+with tab3:
+    st.subheader("Delete Entries")
+    if not df.empty:
+        # පේළි අංකය සමඟ දත්ත පෙන්වමු
+        display_df = df.copy()
+        display_df['Row ID'] = range(2, len(df) + 2) # Google Sheet එකේ පේළි අංකය (Header එක නිසා +2)
+        
+        st.write("අන්තිමට ඇතුළත් කළ දත්ත (පහළින්ම තියෙන්නේ අලුත්ම එක):")
+        st.dataframe(display_df.tail(10), use_container_width=True)
+        
+        row_to_delete = st.number_input("මකන්න ඕන පේළියේ Row ID එක ලබා දෙන්න", min_value=2, max_value=len(df)+1, step=1)
+        
+        st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
+        if st.button(f"Delete Row {row_to_delete} Forever 🗑️"):
+            worksheet.delete_rows(int(row_to_delete))
+            st.warning(f"Row {row_to_delete} deleted!")
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.info("මකන්න දත්ත කිසිවක් නැත.")
