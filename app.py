@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-# පරණ එක: from st_gsheets_connection import GSheetsConnection
-# අලුත් එක (මේක වැඩ කරන්න වැඩි ඉඩක් තියෙනවා):
 from streamlit_gsheets import GSheetsConnection
 
 # --- පිටුවේ සැකසුම් (Page Config) ---
@@ -14,7 +12,6 @@ if "auth" not in st.session_state:
 
 if not st.session_state.auth:
     st.title("🔐 Login to Pocket Finance")
-    # මෙතන තමයි ඔයාගේ Password එක තියෙන්නේ
     pwd = st.text_input("Enter Password", type="password")
     if st.button("Login"):
         if pwd == "###1984***":
@@ -28,12 +25,17 @@ else:
         # Secrets වල ඇති විස්තර ඇසුරින් සම්බන්ධ වේ
         conn = st.connection("gsheets", type=GSheetsConnection)
         
-        # දත්ත කියවීම (ttl=0 කියන්නේ cache නොකර අලුත්ම දත්ත ගන්න කියන එකයි)
-        df = conn.read(ttl=0)
+        # දත්ත කියවීම (ඔයාගේ Sheet එකේ පල්ලෙහා නම "Sheet1" ලෙස තිබිය යුතුය)
+        df = conn.read(worksheet="Sheet1", ttl=0)
         
+        # Response 200 ප්‍රශ්නය විසඳීමට DataFrame එකක්දැයි පරීක්ෂා කිරීම
+        if not isinstance(df, pd.DataFrame):
+            st.error("දත්ත ලබා ගැනීමේ දෝෂයකි. කරුණාකර Google Sheet එකේ දත්ත පවතින බව පරීක්ෂා කරන්න.")
+            st.stop()
+            
     except Exception as e:
         st.error(f"❌ Google Sheet එකට සම්බන්ධ විය නොහැක: {e}")
-        st.info("කරුණාකර Secrets වල spreadsheet ID එක සහ Google Sheet Share settings පරීක්ෂා කරන්න.")
+        st.info("කරුණාකර Secrets සහ Google Sheet Share settings පරීක්ෂා කරන්න.")
         st.stop()
 
     st.title("💰 Smart Finance Tracker")
@@ -66,7 +68,7 @@ else:
                     updated_df = pd.concat([df, new_row], ignore_index=True)
                     
                     # Google Sheet එක Update කිරීම
-                    conn.update(data=updated_df)
+                    conn.update(worksheet="Sheet1", data=updated_df)
                     
                     st.success("දත්ත සාර්ථකව Cloud එකට සුරැකුණා! ✅")
                     st.rerun()
