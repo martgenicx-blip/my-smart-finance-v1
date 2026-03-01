@@ -3,66 +3,43 @@ import pandas as pd
 from datetime import date
 import gspread
 from google.oauth2.service_account import Credentials
-import plotly.express as px
 
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", page_icon="💰", layout="wide")
 
-# --- UI එක පින්තූරෙ වගේම කරන්න CSS ---
+# --- CSS (බොත්තම් 4ම එකම size එකට සහ ලස්සනට ගන්න) ---
 st.markdown("""
     <style>
-    /* Main Background */
-    .main { background-color: #f0f2f6; }
-    
-    /* Top Action Cards */
     div.stButton > button {
-        height: 100px !important;
-        border-radius: 10px !important;
-        font-size: 18px !important;
+        width: 100% !important;
+        height: 80px !important;
+        border-radius: 12px !important;
         font-weight: bold !important;
+        font-size: 16px !important;
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #ddd !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        display: block !important;
     }
-    
-    /* Hover Effects */
     div.stButton > button:hover {
         border-color: #2196F3 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        background-color: #f0f8ff !important;
     }
-
-    /* Summary Row Styling */
-    .summary-box {
+    .summary-card {
         background-color: white;
-        padding: 15px;
-        border-radius: 5px;
-        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #eee;
         text-align: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    .income-val { color: #2e7d32; font-weight: bold; font-size: 20px; }
-    .expense-val { color: #c62828; font-weight: bold; font-size: 20px; }
-    .balance-val { color: #333; font-weight: bold; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Login Logic ---
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
-if not st.session_state.auth:
-    _, col_mid, _ = st.columns([1, 1, 1])
-    with col_mid:
-        st.title("🔐 Login")
-        pwd = st.text_input("Password", type="password")
-        if st.button("Login 🚀"):
-            if pwd == "###1984***":
-                st.session_state.auth = True
-                st.rerun()
-    st.stop()
+# --- Session State (බොත්තම එබුවම Form එක පෙන්වන්න) ---
+if "show_form" not in st.session_state:
+    st.session_state.show_form = None
 
 # --- Google Sheets Connection ---
 try:
@@ -83,7 +60,6 @@ try:
     client = gspread.authorize(creds)
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
-    
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
@@ -92,69 +68,64 @@ except Exception as e:
     st.stop()
 
 # --- UI Header ---
-st.title("💰 Income Expense Tracker")
+st.title("💰 Finance Tracker")
 
-# --- පින්තූරෙ තියෙන විදිහටම Top 4 Buttons ---
-c1, c2 = st.columns(2)
-with c1:
-    inc_btn = st.button("➕\nAdd Income")
-with c2:
-    exp_btn = st.button("➖\nAdd Expense")
+# --- මෙන්න එකම Size එකේ බොත්තම් 4 ---
+c1, c2, c3, c4 = st.columns(4)
 
-c3, c4 = st.columns(2)
-with c3:
-    st.button("🔄\nTransfer")
-with c4:
-    st.button("📑\nTransactions")
+if c1.button("➕\nIncome"):
+    st.session_state.show_form = "Income"
+if c2.button("➖\nExpense"):
+    st.session_state.show_form = "Expense"
+if c3.button("🔄\nTransfer"):
+    st.info("Transfer feature coming soon!")
+if c4.button("📑\nHistory"):
+    st.session_state.show_form = "History"
 
 st.write("---")
 
-# --- Summary Table (Image විදිහටම) ---
+# --- Form එක පෙන්වන කොටස (බොත්තම එබූ විට) ---
+if st.session_state.show_form in ["Income", "Expense"]:
+    t_type = st.session_state.show_form
+    with st.container():
+        st.subheader(f"New {t_type} Entry")
+        with st.form("entry_form", clear_on_submit=True):
+            amt = st.number_input("Amount (LKR)", min_value=0.0, step=100.0)
+            cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Shopping", "Other"])
+            note = st.text_input("Description")
+            sub_col1, sub_col2 = st.columns([1, 4])
+            if sub_col1.form_submit_button("Save ✅"):
+                if amt > 0:
+                    worksheet.append_row([str(date.today()), cat, amt, note, t_type])
+                    st.success("Saved Successfully!")
+                    st.session_state.show_form = None
+                    st.rerun()
+            if sub_col2.form_submit_button("Cancel ❌"):
+                st.session_state.show_form = None
+                st.rerun()
+
+# --- Summary Section ---
 if not df.empty:
     total_inc = df[df['Type'] == 'Income']['Amount'].sum()
     total_exp = df[df['Type'] == 'Expense']['Amount'].sum()
-    balance = total_inc - total_exp
-
-    st.markdown(f"""
-        <table style="width:100%; border:1px solid #ddd; text-align:center; background-color:white;">
-            <tr style="background-color:#f8f9fa;">
-                <th style="color:green;">Income</th>
-                <th style="color:red;">Expense</th>
-                <th>Balance</th>
-            </tr>
-            <tr>
-                <td class="income-val">{total_inc:,.2f}</td>
-                <td class="expense-val">{total_exp:,.2f}</td>
-                <td class="balance-val">{balance:,.2f}</td>
-            </tr>
-        </table>
-        """, unsafe_allow_html=True)
+    
+    sc1, sc2, sc3 = st.columns(3)
+    sc1.markdown(f'<div class="summary-card"><p>Income</p><h2 style="color:green;">{total_inc:,.0f}</h2></div>', unsafe_allow_html=True)
+    sc2.markdown(f'<div class="summary-card"><p>Expense</p><h2 style="color:red;">{total_exp:,.0f}</h2></div>', unsafe_allow_html=True)
+    sc3.markdown(f'<div class="summary-card"><p>Balance</p><h2>{total_inc - total_exp:,.0f}</h2></div>', unsafe_allow_html=True)
 
 st.write("### Recent Transactions")
 
-# --- Data Entry Modal (බොත්තම් එබුවම විවෘත වෙන Form එක) ---
-if inc_btn or exp_btn:
-    t_type = "Income" if inc_btn else "Expense"
-    with st.expander(f"➕ Add New {t_type}", expanded=True):
-        with st.form("new_entry", clear_on_submit=True):
-            amt = st.number_input("Amount", min_value=0.0)
-            cat = st.selectbox("Category", ["Groceries", "Bank", "Kids", "Personal", "Other"])
-            note = st.text_input("Note")
-            if st.form_submit_button("Save"):
-                worksheet.append_row([str(date.today()), cat, amt, note, t_type])
-                st.success("Saved!")
-                st.rerun()
-
-# --- Recent History (Image style list) ---
+# --- Transaction History List ---
 if not df.empty:
     display_df = df.iloc[::-1].head(10)
     for idx, row in display_df.iterrows():
-        color = "red" if row['Type'] == "Expense" else "green"
+        color = "#ff4b4b" if row['Type'] == "Expense" else "#28a745"
         st.markdown(f"""
-            <div style="background-color:white; padding:10px; border-radius:5px; margin-bottom:5px; border-left: 5px solid {color};">
-                <span style="float:right; color:{color}; font-weight:bold;">{row['Amount']}</span>
+            <div style="background-color:white; padding:15px; border-radius:10px; margin-bottom:10px; border-left: 8px solid {color}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <span style="float:right; color:{color}; font-weight:bold; font-size:18px;">LKR {row['Amount']:,.0f}</span>
                 <div style="font-size:12px; color:gray;">{row['Date']}</div>
-                <div style="font-weight:bold;">{row['Category']}</div>
-                <div style="font-size:14px;">{row['Description']}</div>
+                <div style="font-weight:bold; font-size:16px;">{row['Category']}</div>
+                <div style="font-size:14px; color:#555;">{row['Description']}</div>
             </div>
             """, unsafe_allow_html=True)
