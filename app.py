@@ -49,7 +49,7 @@ st.markdown("""
 if "show_form" not in st.session_state:
     st.session_state.show_form = None
 
-# --- Google Sheets Connection (Fixed Key Error) ---
+# --- Google Sheets Connection ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds_dict = {
@@ -62,7 +62,7 @@ try:
         "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
         "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
         "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"], # මෙතන තමයි වැරදිලා තිබුණේ
+        "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"],
     }
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
@@ -72,8 +72,8 @@ try:
     df = pd.DataFrame(data)
     
     if not df.empty:
-        # Date එක string එකක සිට date object එකකට හරවමු filtering වලට
-        df['Date_Only'] = pd.to_datetime(df['Date']).dt.date
+        # මෙන්න මෙතන තමයි Error එක හැදුවේ (format='mixed' එකතු කළා)
+        df['Date_Only'] = pd.to_datetime(df['Date'], format='mixed').dt.date
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except Exception as e:
     st.error(f"❌ Connection Error: {e}")
@@ -90,7 +90,7 @@ if c4.button("📑\nHistory"): st.session_state.show_form = "History"
 
 st.write("---")
 
-# --- 1. Data Entry with Date Picker ---
+# --- 1. Data Entry ---
 if st.session_state.show_form in ["Income", "Expense"]:
     t_type = st.session_state.show_form
     with st.container():
@@ -122,14 +122,13 @@ if not df.empty:
 
 st.write("---")
 
-# --- 3. Date Filtering & History ---
+# --- 3. Filter & History ---
 st.write("### 🔍 Filter & History")
 if not df.empty:
     f_col1, f_col2 = st.columns(2)
     start_date = f_col1.date_input("Start Date", df['Date_Only'].min())
     end_date = f_col2.date_input("End Date", date.today())
 
-    # Filter දත්ත (Date_Only පාවිච්චි කරමු)
     mask = (df['Date_Only'] >= start_date) & (df['Date_Only'] <= end_date)
     filtered_df = df.loc[mask].iloc[::-1]
 
@@ -145,4 +144,4 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
     else:
-        st.info("තෝරාගත් කාලය ඇතුළත දත්ත කිසිවක් නැත.")
+        st.info("තෝරාගත් කාලය ඇතුළත දත්ත නැත.")
