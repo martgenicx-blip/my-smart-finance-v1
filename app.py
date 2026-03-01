@@ -6,39 +6,46 @@ from google.oauth2.service_account import Credentials
 import plotly.express as px
 
 # --- Page Config ---
-st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
+st.set_page_config(page_title="Income Expense Tracker", page_icon="💰", layout="wide")
 
-# --- වඩාත් ශක්තිමත් CSS එක (Attribute based Hover) ---
+# --- UI එක පින්තූරෙ වගේම කරන්න CSS ---
 st.markdown("""
     <style>
-    /* බොත්තම් වල පොදු පෙනුම */
+    /* Main Background */
+    .main { background-color: #f0f2f6; }
+    
+    /* Top Action Cards */
     div.stButton > button {
-        width: 100% !important;
-        height: 4em !important;
-        border-radius: 12px !important;
-        border: 2px solid #ccc !important;
-        background-color: #f8f9fa !important;
-        color: #333 !important;
-        font-weight: bold !important;
+        height: 100px !important;
+        border-radius: 10px !important;
         font-size: 18px !important;
-        transition: all 0.3s ease-in-out !important;
+        font-weight: bold !important;
+        background-color: white !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Hover Effects */
+    div.stButton > button:hover {
+        border-color: #2196F3 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
     }
 
-    /* Income Button එක උඩට මවුස් එක ගියහම (➕ අයිකනය තියෙන බොත්තම) */
-    div.stButton > button:has(div:contains("➕")):hover {
-        background-color: #28a745 !important;
-        color: white !important;
-        border-color: #1e7e34 !important;
-        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+    /* Summary Row Styling */
+    .summary-box {
+        background-color: white;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        text-align: center;
     }
-
-    /* Expense Button එක උඩට මවුස් එක ගියහම (➖ අයිකනය තියෙන බොත්තම) */
-    div.stButton > button:has(div:contains("➖")):hover {
-        background-color: #fd7e14 !important;
-        color: white !important;
-        border-color: #d6680b !important;
-        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.4) !important;
-    }
+    .income-val { color: #2e7d32; font-weight: bold; font-size: 20px; }
+    .expense-val { color: #c62828; font-weight: bold; font-size: 20px; }
+    .balance-val { color: #333; font-weight: bold; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,72 +91,70 @@ except Exception as e:
     st.error(f"❌ Connection Error: {e}")
     st.stop()
 
-# --- Dashboard ---
-st.title("💰 Smart Finance Dashboard")
+# --- UI Header ---
+st.title("💰 Income Expense Tracker")
 
+# --- පින්තූරෙ තියෙන විදිහටම Top 4 Buttons ---
+c1, c2 = st.columns(2)
+with c1:
+    inc_btn = st.button("➕\nAdd Income")
+with c2:
+    exp_btn = st.button("➖\nAdd Expense")
+
+c3, c4 = st.columns(2)
+with c3:
+    st.button("🔄\nTransfer")
+with c4:
+    st.button("📑\nTransactions")
+
+st.write("---")
+
+# --- Summary Table (Image විදිහටම) ---
 if not df.empty:
     total_inc = df[df['Type'] == 'Income']['Amount'].sum()
     total_exp = df[df['Type'] == 'Expense']['Amount'].sum()
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Total Income", f"LKR {total_inc:,.2f}")
-    m2.metric("Total Expense", f"LKR {total_exp:,.2f}")
-    m3.metric("Balance", f"LKR {total_inc - total_exp:,.2f}")
+    balance = total_inc - total_exp
 
-st.divider()
+    st.markdown(f"""
+        <table style="width:100%; border:1px solid #ddd; text-align:center; background-color:white;">
+            <tr style="background-color:#f8f9fa;">
+                <th style="color:green;">Income</th>
+                <th style="color:red;">Expense</th>
+                <th>Balance</th>
+            </tr>
+            <tr>
+                <td class="income-val">{total_inc:,.2f}</td>
+                <td class="expense-val">{total_exp:,.2f}</td>
+                <td class="balance-val">{balance:,.2f}</td>
+            </tr>
+        </table>
+        """, unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["➕ Add Entry", "📊 Analysis", "📜 History & Delete"])
+st.write("### Recent Transactions")
 
-with tab1:
-    st.subheader("දත්ත ඇතුළත් කරන්න")
-    c_amt, c_cat = st.columns(2)
-    t_amt = c_amt.number_input("මුදල (LKR)", min_value=0.0, step=100.0)
-    t_cat = c_cat.selectbox("ප්‍රවර්ගය", ["Food", "Travel", "Bills", "Salary", "Shopping", "Other"])
-    t_note = st.text_input("විස්තරය (Description)")
-    
-    st.write("---")
-    btn_col1, btn_col2 = st.columns(2)
-    
-    if btn_col1.button("➕ Income"):
-        if t_amt > 0:
-            worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Income"])
-            st.success("Income Saved! ✅")
-            st.rerun()
-
-    if btn_col2.button("➖ Expense"):
-        if t_amt > 0:
-            worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Expense"])
-            st.error("Expense Saved! 📉")
-            st.rerun()
-
-with tab2:
-    if not df.empty:
-        c1, c2 = st.columns(2)
-        with c1:
-            exp_df = df[df['Type'] == 'Expense']
-            if not exp_df.empty:
-                st.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4), use_container_width=True)
-        with c2:
-            sum_df = df.groupby('Type')['Amount'].sum().reset_index()
-            st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type', color_discrete_map={"Income": "#28a745", "Expense": "#fd7e14"}), use_container_width=True)
-
-with tab3:
-    st.subheader("History & Delete")
-    if not df.empty:
-        display_df = df.copy()
-        display_df['Row_ID'] = range(2, len(df) + 2)
-        display_df = display_df.iloc[::-1]
-
-        for idx, row in display_df.iterrows():
-            col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.5, 2.5, 1])
-            icon = "➕" if row['Type'] == "Income" else "➖"
-            color = "#28a745" if row['Type'] == "Income" else "#fd7e14"
-            
-            col1.write(row['Date'])
-            col2.write(row['Category'])
-            col3.markdown(f"<span style='color:{color}; font-weight:bold;'>{icon} {row['Amount']}</span>", unsafe_allow_html=True)
-            col4.write(row['Description'])
-            
-            if col5.button("🗑️", key=f"del_{row['Row_ID']}"):
-                worksheet.delete_rows(int(row['Row_ID']))
+# --- Data Entry Modal (බොත්තම් එබුවම විවෘත වෙන Form එක) ---
+if inc_btn or exp_btn:
+    t_type = "Income" if inc_btn else "Expense"
+    with st.expander(f"➕ Add New {t_type}", expanded=True):
+        with st.form("new_entry", clear_on_submit=True):
+            amt = st.number_input("Amount", min_value=0.0)
+            cat = st.selectbox("Category", ["Groceries", "Bank", "Kids", "Personal", "Other"])
+            note = st.text_input("Note")
+            if st.form_submit_button("Save"):
+                worksheet.append_row([str(date.today()), cat, amt, note, t_type])
+                st.success("Saved!")
                 st.rerun()
-            st.divider()
+
+# --- Recent History (Image style list) ---
+if not df.empty:
+    display_df = df.iloc[::-1].head(10)
+    for idx, row in display_df.iterrows():
+        color = "red" if row['Type'] == "Expense" else "green"
+        st.markdown(f"""
+            <div style="background-color:white; padding:10px; border-radius:5px; margin-bottom:5px; border-left: 5px solid {color};">
+                <span style="float:right; color:{color}; font-weight:bold;">{row['Amount']}</span>
+                <div style="font-size:12px; color:gray;">{row['Date']}</div>
+                <div style="font-weight:bold;">{row['Category']}</div>
+                <div style="font-size:14px;">{row['Description']}</div>
+            </div>
+            """, unsafe_allow_html=True)
