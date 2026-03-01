@@ -8,32 +8,36 @@ import plotly.express as px
 # --- Page Config ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- Custom CSS (බොත්තම් වල පාට සහ හැඩය වෙනස් කිරීමට) ---
+# --- මෙන්න මේ CSS එක තමයි වැදගත්ම කොටස ---
 st.markdown("""
     <style>
-    /* බොත්තම් වල පොදු හැඩය */
-    .stButton>button {
-        width: 100%;
-        border-radius: 12px;
-        height: 4em;
-        font-size: 18px;
-        font-weight: bold;
-        color: white;
-        border: none;
-        transition: 0.3s;
+    /* හැම බොත්තමකම පොදු පෙනුම */
+    div.stButton > button {
+        width: 100% !important;
+        height: 4em !important;
+        border-radius: 15px !important;
+        font-weight: bold !important;
+        font-size: 20px !important;
+        color: white !important;
+        border: none !important;
     }
-    /* Income Button - Green */
-    div.stButton > button:first-child[aria-label*="Income"] {
+    
+    /* Income Button එකට කොළ පාට බලෙන් දාමු */
+    div.stButton > button[aria-label*="Income"] {
         background-color: #28a745 !important;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
     }
-    /* Expense Button - Orange/Redish */
-    div.stButton > button:first-child[aria-label*="Expense"] {
+
+    /* Expense Button එකට තැඹිලි පාට බලෙන් දාමු */
+    div.stButton > button[aria-label*="Expense"] {
         background-color: #fd7e14 !important;
+        box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3) !important;
     }
-    /* Hover Effects */
-    .stButton>button:hover {
-        opacity: 0.8;
-        transform: scale(1.02);
+    
+    /* බොත්තම උඩට මවුස් එක ගෙනිච්චම වෙනස් වෙන්න */
+    div.stButton > button:hover {
+        opacity: 0.85 !important;
+        transform: translateY(-2px) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -103,22 +107,20 @@ with tab1:
     t_note = st.text_input("විස්තරය (Description)")
     
     st.write("---")
-    # මෙන්න ඔයා ඉල්ලපු ලස්සන බොත්තම් දෙක
     btn_col1, btn_col2 = st.columns(2)
     
+    # මෙතන label එක ඇතුළේ "Income" සහ "Expense" කියන වචන තියෙන නිසා CSS එකට අහු වෙනවා
     if btn_col1.button("➕ Income"):
         if t_amt > 0:
             worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Income"])
-            st.success("ආදායම සුරැකුණා! ✅")
+            st.success("Income Saved! ✅")
             st.rerun()
-        else: st.warning("කරුණාකර මුදලක් ඇතුළත් කරන්න.")
 
     if btn_col2.button("➖ Expense"):
         if t_amt > 0:
             worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Expense"])
-            st.error("වියදම සුරැකුණා! 📉")
+            st.error("Expense Saved! 📉")
             st.rerun()
-        else: st.warning("කරුණාකර මුදලක් ඇතුළත් කරන්න.")
 
 with tab2:
     if not df.empty:
@@ -126,10 +128,10 @@ with tab2:
         with c1:
             exp_df = df[df['Type'] == 'Expense']
             if not exp_df.empty:
-                st.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4, title="වියදම් බෙදී ඇති ආකාරය"), use_container_width=True)
+                st.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4), use_container_width=True)
         with c2:
             sum_df = df.groupby('Type')['Amount'].sum().reset_index()
-            st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type', title="ආදායම සහ වියදම සංසන්දනය"), use_container_width=True)
+            st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type', color_discrete_map={"Income": "#28a745", "Expense": "#fd7e14"}), use_container_width=True)
 
 with tab3:
     st.subheader("පසුගිය ගනුදෙනු")
