@@ -8,36 +8,32 @@ import plotly.express as px
 # --- Page Config ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- මෙන්න මේ CSS එක තමයි වැදගත්ම කොටස ---
+# --- CSS එක අලුත් කළා (Black text & Light Colors) ---
 st.markdown("""
     <style>
-    /* හැම බොත්තමකම පොදු පෙනුම */
     div.stButton > button {
         width: 100% !important;
         height: 4em !important;
         border-radius: 15px !important;
         font-weight: bold !important;
         font-size: 20px !important;
-        color: white !important;
-        border: none !important;
+        color: black !important; /* අකුරු කළු කළා */
+        border: 2px solid #ddd !important;
     }
     
-    /* Income Button එකට කොළ පාට බලෙන් දාමු */
+    /* Light Green for Income */
     div.stButton > button[aria-label*="Income"] {
-        background-color: #28a745 !important;
-        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+        background-color: #90ee90 !important; /* ලා කොළ පාට */
     }
 
-    /* Expense Button එකට තැඹිලි පාට බලෙන් දාමු */
+    /* Light Orange for Expense */
     div.stButton > button[aria-label*="Expense"] {
-        background-color: #fd7e14 !important;
-        box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3) !important;
+        background-color: #ffb347 !important; /* ලා තැඹිලි පාට */
     }
     
-    /* බොත්තම උඩට මවුස් එක ගෙනිච්චම වෙනස් වෙන්න */
     div.stButton > button:hover {
-        opacity: 0.85 !important;
-        transform: translateY(-2px) !important;
+        filter: brightness(0.9);
+        transform: translateY(-2px);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -109,7 +105,6 @@ with tab1:
     st.write("---")
     btn_col1, btn_col2 = st.columns(2)
     
-    # මෙතන label එක ඇතුළේ "Income" සහ "Expense" කියන වචන තියෙන නිසා CSS එකට අහු වෙනවා
     if btn_col1.button("➕ Income"):
         if t_amt > 0:
             worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Income"])
