@@ -8,33 +8,36 @@ import plotly.express as px
 # --- Page Config ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- CSS (අලුත්ම සහ අනිවාර්යයෙන්ම වැඩ කරන ක්‍රමය) ---
+# --- මෙන්න මවුස් එක ගෙනිච්චම පාට වෙනස් වෙන CSS එක ---
 st.markdown("""
     <style>
-    /* හැම බොත්තමකම පොදු හැඩය */
+    /* බොත්තම් වල සාමාන්‍ය පෙනුම (Normal State) */
     div.stButton > button {
         width: 100% !important;
         height: 4em !important;
         border-radius: 15px !important;
         font-weight: bold !important;
         font-size: 20px !important;
-        color: black !important;
+        color: #333 !important; /* අකුරු කළු/අළු */
+        background-color: #f0f2f6 !important; /* සාමාන්‍ය අළු පාට */
         border: 2px solid #ddd !important;
+        transition: all 0.3s ease !important; /* සෙමින් පාට මාරු වෙන්න */
     }
 
-    /* පළවෙනි බොත්තම (Income) - ලා කොළ පාට */
-    div.row-widget.stHorizontal > div:nth-of-type(1) > div > button {
-        background-color: #90ee90 !important;
+    /* Income Button එක උඩට මවුස් එක ගියහම (Hover) */
+    div.row-widget.stHorizontal > div:nth-of-type(1) > div > button:hover {
+        background-color: #28a745 !important; /* තද කොළ පාට */
+        color: white !important; /* අකුරු සුදු වෙනවා පැහැදිලි වෙන්න */
+        border-color: #218838 !important;
+        transform: scale(1.02) !important;
     }
 
-    /* දෙවෙනි බොත්තම (Expense) - ලා තැඹිලි පාට */
-    div.row-widget.stHorizontal > div:nth-of-type(2) > div > button {
-        background-color: #ffb347 !important;
-    }
-
-    div.stButton > button:hover {
-        filter: brightness(0.8);
-        transform: translateY(-2px);
+    /* Expense Button එක උඩට මවුස් එක ගියහම (Hover) */
+    div.row-widget.stHorizontal > div:nth-of-type(2) > div > button:hover {
+        background-color: #fd7e14 !important; /* තද තැඹිලි පාට */
+        color: white !important; /* අකුරු සුදු වෙනවා */
+        border-color: #e36c09 !important;
+        transform: scale(1.02) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -104,7 +107,6 @@ with tab1:
     t_note = st.text_input("විස්තරය (Description)")
     
     st.write("---")
-    # මෙතන තමයි CSS එකෙන් බොත්තම් අල්ලගන්න තැන
     btn_col1, btn_col2 = st.columns(2)
     
     if btn_col1.button("➕ Income"):
