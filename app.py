@@ -70,7 +70,9 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
         st.subheader(f"Add {st.session_state.show_form}")
         with st.form("entry_form", clear_on_submit=True):
             d = st.date_input("Date", date.today())
-            amt = st.number_input("Amount", min_value=0.0)
+            
+            # මෙන්න මෙතන තමයි වෙනස් කළේ: value=None දැම්මම ක්ලික් කළ ගමන් මැකෙනවා
+            amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00", min_value=0.0)
             
             if st.session_state.show_form == "Transfer":
                 f_acc = st.selectbox("From Account", ["Cash", "Bank", "Card"])
@@ -82,9 +84,12 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
 
             note = st.text_input("Note")
             if st.form_submit_button("Save Record ✅"):
-                ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
-                worksheet.append_row([ts, cat, amt, note, st.session_state.show_form, f_acc, t_acc])
-                st.success("Saved!"); st.session_state.show_form = None; st.rerun()
+                if amt is not None and amt > 0:
+                    ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
+                    worksheet.append_row([ts, cat, amt, note, st.session_state.show_form, f_acc, t_acc])
+                    st.success("Saved!"); st.session_state.show_form = None; st.rerun()
+                else:
+                    st.warning("Please enter a valid amount.")
 
 # --- 2. Summary ---
 if not df.empty:
@@ -112,12 +117,10 @@ st.write("---")
 st.subheader("📜 Recent Transactions")
 
 if not df.empty:
-    # Filtering UI (Date Filter ekathu kala)
     f_col1, f_col2 = st.columns(2)
     start_d = f_col1.date_input("Start Date", df['Date_Only'].min())
     end_d = f_col2.date_input("End Date", date.today())
 
-    # Filter Logic
     mask = (df['Date_Only'] >= start_d) & (df['Date_Only'] <= end_d)
     df['row_idx'] = range(2, len(df) + 2)
     filtered_df = df.loc[mask].iloc[::-1]
@@ -126,7 +129,6 @@ if not df.empty:
         for idx, row in filtered_df.iterrows():
             col_data, col_del = st.columns([0.9, 0.1])
             
-            # Income (+) Green, Expense (-) Red marks
             if row['Type'] == "Income":
                 mark = '<span class="inc-mark">+</span>'
                 color = "#28a745"
@@ -152,4 +154,4 @@ if not df.empty:
                     worksheet.delete_rows(int(row['row_idx']))
                     st.success("Deleted!"); st.rerun()
     else:
-        st.info("No records found for the selected date range.")
+        st.info("No records found.")
