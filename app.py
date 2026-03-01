@@ -3,24 +3,26 @@ import pandas as pd
 from datetime import date
 import gspread
 from google.oauth2.service_account import Credentials
+import plotly.express as px  # චාර්ට්ස් ඇඳීමට අලුතින් එක් කළා
 
-st.set_page_config(page_title="Smart Finance v1", page_icon="💰")
+st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
 # --- Login Logic ---
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if not st.session_state.auth:
-    st.title("🔐 Login")
+    st.title("🔐 Login to Pocket Finance")
     pwd = st.text_input("Enter Password", type="password")
     if st.button("Login"):
         if pwd == "###1984***":
             st.session_state.auth = True
             st.rerun()
+        else:
+            st.error("වැරදි මුරපදයක්!")
 else:
-    # --- Google Sheets Connection (Direct via gspread) ---
+    # --- Google Sheets Connection ---
     try:
-        # Secrets වලින් දත්ත කියවීම
         scope = ["https://www.googleapis.com/auth/spreadsheets"]
         creds_dict = {
             "type": st.secrets["connections"]["gsheets"]["type"],
@@ -38,34 +40,78 @@ else:
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         client = gspread.authorize(creds)
         
-        # Sheet ID එක Secrets වලින් හෝ මෙතන කෙලින්ම දෙන්න
         sheet_id = "1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8"
         sh = client.open_by_key(sheet_id)
-        worksheet = sh.worksheet("Sheet1") # Sheet එකේ නම Sheet1 විය යුතුයි
+        worksheet = sh.worksheet("Sheet1")
         
-        # Data කියවීම
         data = worksheet.get_all_records()
         df = pd.DataFrame(data)
+        # Amount එක number එකක් බව සහතික කරමු
+        df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
         
     except Exception as e:
         st.error(f"❌ Connection Error: {e}")
         st.stop()
 
-    st.title("💰 Smart Finance Tracker")
-    tab1, tab2 = st.tabs(["➕ Add Data", "📊 History"])
+    st.title("💰 Smart Finance Dashboard")
+
+    # --- Charts & Analysis Section ---
+    if not df.empty:
+        # ගණනය කිරීම්
+        total_income = df[df['Type'] == 'Income']['Amount'].sum()
+        total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
+        balance = total_income - total_expense
+
+        # Summary Metrics
+        m1, m2, m3 = st.columns(3)
+        m1.metric("මුළු ආදායම", f"LKR {total_income:,.2f}")
+        m2.metric("මුළු වියදම", f"LKR {total_expense:,.2f}", delta=f"-{total_expense:,.2f}", delta_color="inverse")
+        m3.metric("ඉතිරි මුදල", f"LKR {balance:,.2f}")
+
+        st.divider()
+
+        # Charts row
+        c1, c2 = st.columns(2)
+
+        with c1:
+            st.subheader("වියදම් බෙදී ඇති ආකාරය (By Category)")
+            expense_df = df[df['Type'] == 'Expense']
+            if not expense_df.empty:
+                fig_pie = px.pie(expense_df, values='Amount', names='Category', hole=0.4, 
+                                 color_discrete_sequence=px.colors.qualitative.Pastel)
+                st.plotly_chart(fig_pie, use_container_width=True)
+            else:
+                st.info("වියදම් දත්ත නැත.")
+
+        with c2:
+            st.subheader("ආදායම vs වියදම")
+            summary_df = pd.DataFrame({
+                "වර්ගය": ["Income", "Expense"],
+                "මුදල": [total_income, total_expense]
+            })
+            fig_bar = px.bar(summary_df, x='වර්ගය', y='මුදල', color='වර්ගය',
+                             color_discrete_map={"Income": "#2ecc71", "Expense": "#e74c3c"})
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    st.divider()
+
+    # --- Input & History Tabs ---
+    tab1, tab2 = st.tabs(["➕ Add New", "📊 History Log"])
 
     with tab1:
         with st.form("add_form", clear_on_submit=True):
-            t_type = st.selectbox("Type", ["Expense", "Income"])
-            t_amt = st.number_input("Amount", min_value=0.0)
-            t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Salary", "Other"])
+            col_a, col_b = st.columns(2)
+            t_type = col_a.selectbox("Type", ["Expense", "Income"])
+            t_amt = col_b.number_input("Amount (LKR)", min_value=0.0, step=100.0)
+            t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Rent", "Salary", "Shopping", "Other"])
             t_note = st.text_input("Description")
             
-            if st.form_submit_button("Save"):
-                new_row = [str(date.today()), t_cat, t_amt, t_note, t_type]
-                worksheet.append_row(new_row)
-                st.success("Saved! ✅")
-                st.rerun()
+            if st.form_submit_button("Cloud එකට සුරකින්න"):
+                if t_amt > 0:
+                    new_row = [str(date.today()), t_cat, t_amt, t_note, t_type]
+                    worksheet.append_row(new_row)
+                    st.success("සාර්ථකව සුරැකුණා! ✅")
+                    st.rerun()
 
     with tab2:
         if not df.empty:
