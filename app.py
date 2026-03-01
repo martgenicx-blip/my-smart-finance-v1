@@ -25,17 +25,17 @@ else:
         # Secrets වල ඇති විස්තර ඇසුරින් සම්බන්ධ වේ
         conn = st.connection("gsheets", type=GSheetsConnection)
         
-        # දත්ත කියවීම (ඔයාගේ Sheet එකේ පල්ලෙහා නම "Sheet1" ලෙස තිබිය යුතුය)
+        # දත්ත කියවීම (Sheet එකේ නම "Sheet1" බව තහවුරු කරගන්න)
+        # Response 200 අවුල මගහරවා ගැනීමට සෘජුවම DataFrame එක ලබාගනිමු
         df = conn.read(worksheet="Sheet1", ttl=0)
         
-        # Response 200 ප්‍රශ්නය විසඳීමට DataFrame එකක්දැයි පරීක්ෂා කිරීම
-        if not isinstance(df, pd.DataFrame):
-            st.error("දත්ත ලබා ගැනීමේ දෝෂයකි. කරුණාකර Google Sheet එකේ දත්ත පවතින බව පරීක්ෂා කරන්න.")
+        # ලබාගත් දත්ත DataFrame එකක්දැයි පරීක්ෂා කිරීම
+        if df is None or not isinstance(df, pd.DataFrame):
+            st.error("දත්ත කියවීමේ දෝෂයකි. කරුණාකර Google Sheet එකේ දත්ත ඇති බව බලන්න.")
             st.stop()
             
     except Exception as e:
-        st.error(f"❌ Google Sheet එකට සම්බන්ධ විය නොහැක: {e}")
-        st.info("කරුණාකර Secrets සහ Google Sheet Share settings පරීක්ෂා කරන්න.")
+        st.error(f"❌ සම්බන්ධතාවයේ දෝෂයක්: {e}")
         st.stop()
 
     st.title("💰 Smart Finance Tracker")
