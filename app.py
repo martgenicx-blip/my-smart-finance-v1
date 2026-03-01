@@ -8,31 +8,32 @@ import plotly.express as px
 # --- Page Config ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- CSS එක අලුත් කළා (Black text & Light Colors) ---
+# --- CSS (අලුත්ම සහ අනිවාර්යයෙන්ම වැඩ කරන ක්‍රමය) ---
 st.markdown("""
     <style>
+    /* හැම බොත්තමකම පොදු හැඩය */
     div.stButton > button {
         width: 100% !important;
         height: 4em !important;
         border-radius: 15px !important;
         font-weight: bold !important;
         font-size: 20px !important;
-        color: black !important; /* අකුරු කළු කළා */
+        color: black !important;
         border: 2px solid #ddd !important;
     }
-    
-    /* Light Green for Income */
-    div.stButton > button[aria-label*="Income"] {
-        background-color: #90ee90 !important; /* ලා කොළ පාට */
+
+    /* පළවෙනි බොත්තම (Income) - ලා කොළ පාට */
+    div.row-widget.stHorizontal > div:nth-of-type(1) > div > button {
+        background-color: #90ee90 !important;
     }
 
-    /* Light Orange for Expense */
-    div.stButton > button[aria-label*="Expense"] {
-        background-color: #ffb347 !important; /* ලා තැඹිලි පාට */
+    /* දෙවෙනි බොත්තම (Expense) - ලා තැඹිලි පාට */
+    div.row-widget.stHorizontal > div:nth-of-type(2) > div > button {
+        background-color: #ffb347 !important;
     }
-    
+
     div.stButton > button:hover {
-        filter: brightness(0.9);
+        filter: brightness(0.8);
         transform: translateY(-2px);
     }
     </style>
@@ -47,7 +48,7 @@ if not st.session_state.auth:
     with col_mid:
         st.title("🔐 Login")
         pwd = st.text_input("Password", type="password")
-        if st.button("Login 🚀", key="login_btn"):
+        if st.button("Login 🚀"):
             if pwd == "###1984***":
                 st.session_state.auth = True
                 st.rerun()
@@ -103,6 +104,7 @@ with tab1:
     t_note = st.text_input("විස්තරය (Description)")
     
     st.write("---")
+    # මෙතන තමයි CSS එකෙන් බොත්තම් අල්ලගන්න තැන
     btn_col1, btn_col2 = st.columns(2)
     
     if btn_col1.button("➕ Income"):
@@ -129,7 +131,7 @@ with tab2:
             st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type', color_discrete_map={"Income": "#28a745", "Expense": "#fd7e14"}), use_container_width=True)
 
 with tab3:
-    st.subheader("පසුගිය ගනුදෙනු")
+    st.subheader("History & Delete")
     if not df.empty:
         display_df = df.copy()
         display_df['Row_ID'] = range(2, len(df) + 2)
