@@ -1,4 +1,3 @@
-streamlit
-pandas
-plotly
-st-gsheets-connection
+git add .
+git commit -m "final fix with empty line"
+git push origin main
