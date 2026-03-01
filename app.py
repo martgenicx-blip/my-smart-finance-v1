@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from st_gsheets_connection import GSheetsConnection
-
+from streamlit_gsheets import GSheetsConnection
 # --- පිටුවේ සැකසුම් (Page Config) ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
