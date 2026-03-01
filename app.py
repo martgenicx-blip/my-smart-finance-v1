@@ -6,7 +6,7 @@ from google.oauth2.service_account import Credentials
 import plotly.express as px
 
 # --- Page Config ---
-st.set_page_config(page_title="Finance Tracker Ultra v2", page_icon="💰", layout="wide")
+st.set_page_config(page_title="Finance Tracker Pro", page_icon="💰", layout="wide")
 
 # --- CSS (Design & Hover Effects) ---
 st.markdown("""
@@ -23,12 +23,13 @@ st.markdown("""
     }
     div.stButton > button:has(div:contains("Income")):hover { background-color: #d4edda !important; border-color: #28a745 !important; }
     div.stButton > button:has(div:contains("Expense")):hover { background-color: #f8d7da !important; border-color: #dc3545 !important; }
-    div.stButton > button:has(div:contains("Transfer")):hover { background-color: #fff3cd !important; border-color: #ffc107 !important; }
     
     .summary-card {
         background-color: white; padding: 15px; border-radius: 10px;
         border: 1px solid #eee; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
+    .inc-mark { color: #28a745; font-weight: bold; font-size: 20px; }
+    .exp-mark { color: #dc3545; font-weight: bold; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -47,7 +48,6 @@ try:
     df = pd.DataFrame(data)
     
     if not df.empty:
-        # Date filtering වලට Date column එක පිරිසිදු කරගමු
         df['Date_Only'] = pd.to_datetime(df['Date'], format='mixed').dt.date
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except Exception as e:
@@ -55,7 +55,7 @@ except Exception as e:
     st.stop()
 
 # --- Top Navigation ---
-st.title("💰 Finance Tracker Ultra")
+st.title("💰 Finance Tracker Pro")
 c1, c2, c3, c4 = st.columns(4)
 if c1.button("➕\nIncome"): st.session_state.show_form = "Income"
 if c2.button("➖\nExpense"): st.session_state.show_form = "Expense"
@@ -84,9 +84,7 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
             if st.form_submit_button("Save Record ✅"):
                 ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
                 worksheet.append_row([ts, cat, amt, note, st.session_state.show_form, f_acc, t_acc])
-                st.success("Saved Successfully!")
-                st.session_state.show_form = None
-                st.rerun()
+                st.success("Saved!"); st.session_state.show_form = None; st.rerun()
 
 # --- 2. Summary ---
 if not df.empty:
@@ -104,40 +102,49 @@ if st.session_state.show_form == "Charts" and not df.empty:
     ch1, ch2 = st.columns(2)
     exp_df = df[df['Type'] == 'Expense']
     if not exp_df.empty:
-        ch1.plotly_chart(px.pie(exp_df, values='Amount', names='Category', title="Expense Distribution"), use_container_width=True)
+        ch1.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.4, title="Expenses"), use_container_width=True)
     
     daily = df.groupby('Date_Only')['Amount'].sum().reset_index()
-    ch2.plotly_chart(px.line(daily, x='Date_Only', y='Amount', title="Daily Transaction Trend"), use_container_width=True)
+    ch2.plotly_chart(px.bar(daily, x='Date_Only', y='Amount', title="Daily Spending"), use_container_width=True)
 
 # --- 4. Filtering & History ---
 st.write("---")
-st.write("### 🔍 Search & Filter History")
+st.subheader("📜 Recent Transactions")
 
 if not df.empty:
-    # Filtering UI
+    # Filtering UI (Date Filter ekathu kala)
     f_col1, f_col2 = st.columns(2)
     start_d = f_col1.date_input("Start Date", df['Date_Only'].min())
     end_d = f_col2.date_input("End Date", date.today())
 
-    # Data Filtering Logic
+    # Filter Logic
     mask = (df['Date_Only'] >= start_d) & (df['Date_Only'] <= end_d)
-    # Row index එක Sheet එකෙන් හොයන්න (Header row එක 1 නිසා +2 කරනවා)
     df['row_idx'] = range(2, len(df) + 2)
     filtered_df = df.loc[mask].iloc[::-1]
 
     if not filtered_df.empty:
         for idx, row in filtered_df.iterrows():
             col_data, col_del = st.columns([0.9, 0.1])
-            color = "green" if row['Type'] == "Income" else "red" if row['Type'] == "Expense" else "orange"
+            
+            # Income (+) Green, Expense (-) Red marks
+            if row['Type'] == "Income":
+                mark = '<span class="inc-mark">+</span>'
+                color = "#28a745"
+            elif row['Type'] == "Expense":
+                mark = '<span class="exp-mark">-</span>'
+                color = "#dc3545"
+            else:
+                mark = '<span style="color:orange;">🔄</span>'
+                color = "orange"
             
             with col_data:
                 st.markdown(f"""
                     <div style="background:white; padding:15px; border-radius:10px; border-left:8px solid {color}; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <span style="float:right; font-weight:bold; color:{color}; font-size:18px;">LKR {row['Amount']:,.0f}</span>
-                        <div style="font-size:12px; color:gray;">📅 {row['Date']} | {row['Type']}</div>
+                        <span style="float:right; font-weight:bold; color:{color}; font-size:18px;">{mark} LKR {row['Amount']:,.0f}</span>
+                        <div style="font-size:12px; color:gray;">📅 {row['Date']}</div>
                         <div style="font-weight:bold; font-size:16px;">{row['Category']}</div>
                         <div style="font-size:14px; color:#555;">{row['Description']}</div>
-                        {f"<small style='color:orange;'>From: {row['From_Account']} ➡️ To: {row['To_Account']}</small>" if row['Type'] == 'Transfer' else ''}
+                        {f"<small style='color:orange;'>{row['From_Account']} ➡️ {row['To_Account']}</small>" if row['Type'] == 'Transfer' else ''}
                     </div>
                     """, unsafe_allow_html=True)
             with col_del:
@@ -145,4 +152,4 @@ if not df.empty:
                     worksheet.delete_rows(int(row['row_idx']))
                     st.success("Deleted!"); st.rerun()
     else:
-        st.info("No data found for the selected date range.")
+        st.info("No records found for the selected date range.")
