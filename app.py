@@ -8,12 +8,19 @@ import plotly.express as px
 # --- පිටුවේ සැකසුම් ---
 st.set_page_config(page_title="Smart Finance v1", page_icon="💰", layout="wide")
 
-# --- Custom CSS ---
+# --- Custom CSS (ලස්සන කරන්න සහ බොත්තම් වල පාට වෙනස් කරන්න) ---
 st.markdown("""
     <style>
-    .stButton>button { width: 100%; border-radius: 5px; }
-    .delete-btn button { background-color: #ff4b4b !important; color: white !important; border: none !important; }
-    .record-box { padding: 10px; border-bottom: 1px solid #ddd; margin-bottom: 5px; }
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; height: 3.5em; transition: 0.3s; }
+    /* Income Button - Green */
+    div.stButton > button:first-child[aria-label*="Income"] {
+        background-color: #2ecc71; color: white; border: none;
+    }
+    /* Expense Button - Orange */
+    div.stButton > button:first-child[aria-label*="Expense"] {
+        background-color: #e67e22; color: white; border: none;
+    }
+    .record-box { padding: 10px; border-bottom: 1px solid #ddd; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -26,7 +33,7 @@ if not st.session_state.auth:
     with col_mid:
         st.title("🔐 Login")
         pwd = st.text_input("Password", type="password")
-        if st.button("Login"):
+        if st.button("Login 🚀"):
             if pwd == "###1984***":
                 st.session_state.auth = True
                 st.rerun()
@@ -62,7 +69,6 @@ except Exception as e:
 # --- Dashboard Content ---
 st.title("💰 Smart Finance Tracker")
 
-# Metrics & Summary
 if not df.empty:
     total_inc = df[df['Type'] == 'Income']['Amount'].sum()
     total_exp = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -73,20 +79,34 @@ if not df.empty:
 
 st.divider()
 
-# Tabs
 tab1, tab2, tab3 = st.tabs(["➕ Add Entry", "📊 Analysis", "📜 History & Delete"])
 
 with tab1:
-    with st.form("add_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        t_type = c1.selectbox("Type", ["Expense", "Income"])
-        t_amt = c2.number_input("Amount", min_value=0.0)
-        t_cat = st.selectbox("Category", ["Food", "Travel", "Bills", "Salary", "Shopping", "Other"])
-        t_note = st.text_input("Description")
-        if st.form_submit_button("Save Entry"):
-            worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, t_type])
-            st.success("Saved! ✅")
-            st.rerun()
+    st.subheader("Add New Transaction")
+    with st.container():
+        c_amt, c_cat = st.columns(2)
+        t_amt = c_amt.number_input("Amount (LKR)", min_value=0.0, step=100.0)
+        t_cat = c_cat.selectbox("Category", ["Food", "Travel", "Bills", "Salary", "Shopping", "Other"])
+        t_note = st.text_input("Description (Optional)")
+        
+        st.write("Save as:")
+        btn_inc, btn_exp = st.columns(2)
+        
+        # Income Button (Green + Plus)
+        if btn_inc.button("➕ Save as Income"):
+            if t_amt > 0:
+                worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Income"])
+                st.success("Income Saved! 💸")
+                st.rerun()
+            else: st.warning("කරුණාකර මුදලක් ඇතුළත් කරන්න.")
+
+        # Expense Button (Orange + Minus)
+        if btn_exp.button("➖ Save as Expense"):
+            if t_amt > 0:
+                worksheet.append_row([str(date.today()), t_cat, t_amt, t_note, "Expense"])
+                st.error("Expense Saved! 📉")
+                st.rerun()
+            else: st.warning("කරුණාකර මුදලක් ඇතුළත් කරන්න.")
 
 with tab2:
     if not df.empty:
@@ -99,29 +119,26 @@ with tab2:
         with c2:
             st.subheader("Income vs Expense")
             sum_df = df.groupby('Type')['Amount'].sum().reset_index()
-            st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type'), use_container_width=True)
+            st.plotly_chart(px.bar(sum_df, x='Type', y='Amount', color='Type', color_discrete_map={"Income": "#2ecc71", "Expense": "#e67e22"}), use_container_width=True)
 
 with tab3:
-    st.subheader("Manage Records")
+    st.subheader("History & Delete")
     if not df.empty:
-        # පේළි අංකය සමඟ දත්ත පිළිවෙළට ගමු (අන්තිම එක උඩට)
         display_df = df.copy()
         display_df['Row_ID'] = range(2, len(df) + 2)
         display_df = display_df.iloc[::-1]
 
         for idx, row in display_df.iterrows():
-            with st.container():
-                col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.5, 2.5, 1])
-                col1.write(f"📅 {row['Date']}")
-                col2.write(f"🏷️ {row['Category']}")
-                col3.write(f"💵 {row['Amount']}")
-                col4.write(f"📝 {row['Description']}")
-                
-                # Delete button with unique key
-                if col5.button("🗑️", key=f"btn_{row['Row_ID']}"):
-                    worksheet.delete_rows(int(row['Row_ID']))
-                    st.warning("Deleted!")
-                    st.rerun()
-                st.divider()
-    else:
-        st.info("No records found.")
+            col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.5, 2.5, 1])
+            icon = "➕" if row['Type'] == "Income" else "➖"
+            color = "green" if row['Type'] == "Income" else "orange"
+            
+            col1.write(f"📅 {row['Date']}")
+            col2.write(f"🏷️ {row['Category']}")
+            col3.markdown(f"<span style='color:{color}; font-weight:bold;'>{icon} {row['Amount']}</span>", unsafe_allow_html=True)
+            col4.write(f"📝 {row['Description']}")
+            
+            if col5.button("🗑️", key=f"del_{row['Row_ID']}"):
+                worksheet.delete_rows(int(row['Row_ID']))
+                st.rerun()
+            st.divider()
