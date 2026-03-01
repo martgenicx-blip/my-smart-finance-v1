@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import datetime # date වෙනුවට datetime ගත්තා
 import gspread
 from google.oauth2.service_account import Credentials
 
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", page_icon="💰", layout="wide")
 
-# --- CSS (බොත්තම් 4ම එකම size එකට සහ ලස්සනට ගන්න) ---
+# --- CSS (UI එක ලස්සනට තියාගන්න) ---
 st.markdown("""
     <style>
     div.stButton > button {
@@ -15,16 +15,9 @@ st.markdown("""
         height: 80px !important;
         border-radius: 12px !important;
         font-weight: bold !important;
-        font-size: 16px !important;
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #ddd !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-        display: block !important;
-    }
-    div.stButton > button:hover {
-        border-color: #2196F3 !important;
-        background-color: #f0f8ff !important;
     }
     .summary-card {
         background-color: white;
@@ -37,7 +30,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- Session State (බොත්තම එබුවම Form එක පෙන්වන්න) ---
 if "show_form" not in st.session_state:
     st.session_state.show_form = None
 
@@ -70,41 +62,34 @@ except Exception as e:
 # --- UI Header ---
 st.title("💰 Finance Tracker")
 
-# --- මෙන්න එකම Size එකේ බොත්තම් 4 ---
 c1, c2, c3, c4 = st.columns(4)
-
-if c1.button("➕\nIncome"):
-    st.session_state.show_form = "Income"
-if c2.button("➖\nExpense"):
-    st.session_state.show_form = "Expense"
-if c3.button("🔄\nTransfer"):
-    st.info("Transfer feature coming soon!")
-if c4.button("📑\nHistory"):
-    st.session_state.show_form = "History"
+if c1.button("➕\nIncome"): st.session_state.show_form = "Income"
+if c2.button("➖\nExpense"): st.session_state.show_form = "Expense"
+if c3.button("🔄\nTransfer"): st.info("Coming Soon!")
+if c4.button("📑\nHistory"): st.session_state.show_form = "History"
 
 st.write("---")
 
-# --- Form එක පෙන්වන කොටස (බොත්තම එබූ විට) ---
+# --- Form Section (මෙහිදී තමයි Date & Time record වෙන්නේ) ---
 if st.session_state.show_form in ["Income", "Expense"]:
     t_type = st.session_state.show_form
     with st.container():
-        st.subheader(f"New {t_type} Entry")
+        st.subheader(f"Add {t_type}")
         with st.form("entry_form", clear_on_submit=True):
-            amt = st.number_input("Amount (LKR)", min_value=0.0, step=100.0)
-            cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Shopping", "Other"])
-            note = st.text_input("Description")
-            sub_col1, sub_col2 = st.columns([1, 4])
-            if sub_col1.form_submit_button("Save ✅"):
+            amt = st.number_input("Amount", min_value=0.0)
+            cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Other"])
+            note = st.text_input("Note")
+            
+            if st.form_submit_button("Save ✅"):
                 if amt > 0:
-                    worksheet.append_row([str(date.today()), cat, amt, note, t_type])
-                    st.success("Saved Successfully!")
+                    # මෙන්න මෙතන තමයි දැන් වෙලාව (Time) ගන්නේ
+                    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    worksheet.append_row([now, cat, amt, note, t_type])
+                    st.success(f"Saved at {now}!")
                     st.session_state.show_form = None
                     st.rerun()
-            if sub_col2.form_submit_button("Cancel ❌"):
-                st.session_state.show_form = None
-                st.rerun()
 
-# --- Summary Section ---
+# --- Summary & History ---
 if not df.empty:
     total_inc = df[df['Type'] == 'Income']['Amount'].sum()
     total_exp = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -116,7 +101,6 @@ if not df.empty:
 
 st.write("### Recent Transactions")
 
-# --- Transaction History List ---
 if not df.empty:
     display_df = df.iloc[::-1].head(10)
     for idx, row in display_df.iterrows():
@@ -124,7 +108,7 @@ if not df.empty:
         st.markdown(f"""
             <div style="background-color:white; padding:15px; border-radius:10px; margin-bottom:10px; border-left: 8px solid {color}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <span style="float:right; color:{color}; font-weight:bold; font-size:18px;">LKR {row['Amount']:,.0f}</span>
-                <div style="font-size:12px; color:gray;">{row['Date']}</div>
+                <div style="font-size:12px; color:gray;">📅 {row['Date']}</div>
                 <div style="font-weight:bold; font-size:16px;">{row['Category']}</div>
                 <div style="font-size:14px; color:#555;">{row['Description']}</div>
             </div>
