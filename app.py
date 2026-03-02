@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles ---
+# --- 2. CSS Styles (Ultra Professional UI) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -20,41 +20,45 @@ st.markdown("""
         margin: -60px -20px 25px -20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
+    /* Summary Card */
     .main-summary { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .stat-box { padding: 15px; border-radius: 15px; text-align: center; }
     .income-box { background: #e8f5e9; border: 1px solid #c8e6c9; }
     .expense-box { background: #ffebee; border: 1px solid #ffcdd2; }
-    .balance-container { grid-column: span 2; background: #f0f7ff; border: 1px solid #d1e3ff; padding: 20px; border-radius: 15px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .stat-label { font-size: 11px; color: #666; font-weight: 600; text-transform: uppercase; }
-    .stat-value { font-size: 18px; font-weight: 700; }
-    .balance-val { color: #0081C9; font-size: 22px; }
-
+    .balance-container { grid-column: span 2; background: #f0f7ff; border: 1px solid #d1e3ff; padding: 15px; border-radius: 15px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Action Grid */
     .custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
     .grid-item {
         background: white; border: 1px solid #eee; border-radius: 15px; height: 85px; 
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         font-weight: 600; color: #444 !important; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        text-decoration: none !important; transition: 0.2s;
+        text-decoration: none !important;
     }
 
-    .trans-card { 
-        background: white; padding: 12px 15px; border-radius: 15px; 
-        display: flex; justify-content: space-between; align-items: center; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03); border-left: 6px solid #ccc;
+    /* 🔥 Transaction Row Style - Making it Inline */
+    .trans-row {
+        background: white; border-radius: 15px; padding: 10px 15px;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 8px; border-left: 6px solid #ccc;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
     .trans-income { border-left-color: #28a745; }
     .trans-expense { border-left-color: #dc3545; }
-    
-    /* Inline Buttons Fix */
-    .stButton > button {
-        width: 100% !important;
-        padding: 5px !important;
-        border-radius: 10px !important;
+
+    /* Button Styling */
+    div.stButton > button {
+        padding: 2px 10px !important;
+        border-radius: 8px !important;
+        border: 1px solid #eee !important;
+        height: 32px !important;
+        background-color: white !important;
     }
 
+    /* FAB Menu */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer; }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
@@ -81,16 +85,15 @@ try:
 except:
     st.error("Connection Failed!"); st.stop()
 
-# --- 4. Header ---
-st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
-
-# --- 5. Routing & Query Params (Fixing the Error) ---
+# --- 4. Routing ---
 query = st.query_params
 form_type = query.get("form")
 edit_idx = query.get("edit")
 
-# --- 6. Summary & Action Grid ---
-# මෙතන 'query' පාවිච්චි කළා වැරැද්ද හදන්න
+# --- 5. Header ---
+st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
+
+# --- 6. Summary Section ---
 if not df.empty and not form_type and not edit_idx:
     t_inc = df[df['Type'] == 'Income']['Amount'].sum()
     t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -100,11 +103,11 @@ if not df.empty and not form_type and not edit_idx:
     st.markdown(f"""
         <div class="main-summary">
             <div class="summary-grid">
-                <div class="stat-box income-box"><div class="stat-label">Income</div><div class="stat-value" style="color:#2e7d32;">LKR {t_inc:,.0f}</div></div>
-                <div class="stat-box expense-box"><div class="stat-label">Expense</div><div class="stat-value" style="color:#c62828;">LKR {t_exp:,.0f}</div></div>
+                <div class="stat-box income-box"><div style="font-size:11px;color:#666;">INCOME</div><div style="font-weight:700;color:#2e7d32;">LKR {t_inc:,.0f}</div></div>
+                <div class="stat-box expense-box"><div style="font-size:11px;color:#666;">EXPENSE</div><div style="font-weight:700;color:#c62828;">LKR {t_exp:,.0f}</div></div>
             </div>
             <div class="balance-container">
-                <div><div class="stat-label">Total Balance</div><div class="stat-value balance-val">LKR {final_bal:,.2f}</div></div>
+                <div><div style="font-size:11px;color:#666;">TOTAL BALANCE</div><div style="font-size:22px;font-weight:700;color:#0081C9;">LKR {final_bal:,.2f}</div></div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -118,64 +121,60 @@ if not df.empty and not form_type and not edit_idx:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 7. Forms ---
-if form_type == "ManageCats":
-    st.subheader("⚙️ Manage Categories")
-    new_c = st.text_input("New Category")
-    if st.button("➕ Add"):
-        if new_c: cat_sheet.append_row([new_c]); st.rerun()
-    for c in categories:
-        col1, col2 = st.columns([0.8, 0.2])
-        col1.write(f"• {c}")
-        if col2.button("➖", key=f"d_{c}"):
-            cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
-
-elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
-    curr_type = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
-    scats = [c for c in categories if c in ["Salary", "House Rental"]] if curr_type=="Income" else [c for c in categories if c not in ["Salary", "House Rental"]]
-    
-    st.markdown(f"### 📝 {curr_type}")
-    with st.form("entry_form"):
-        f_date = st.date_input("Date", date.today())
-        f_cat = st.selectbox("Category", scats)
-        f_amt = st.number_input("Amount", min_value=0.0)
-        f_desc = st.text_input("Description")
-        if st.form_submit_button("Save ✅"):
-            ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            row_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
-            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [row_data])
-            else: worksheet.append_row(row_data)
-            st.query_params.clear(); st.rerun()
-
-# --- 8. Recent Activity (Inline Buttons Fix) ---
+# --- 7. Activity (🔥 THE INLINE FIX) ---
 if not form_type and not edit_idx and not df.empty:
     st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
+    
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
         is_inc = row['Type'] == 'Income'
         
-        # ලස්සනට Card එක සහ බටන් ටික Inline පේළියට
-        st.markdown(f"""
-            <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
-                <div style="flex-grow: 1;">
-                    <b>{row['Category']}</b><br><small>{row['Date']}</small>
-                </div>
-                <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'}; margin-right: 15px;">
-                    {'+' if is_inc else '-'}{row['Amount']:,.0f}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # 🎯 Desktop එකේදී එකම පේළියක ඔක්කොම ලස්සනට පේන්න columns 4ක් ගත්තා
+        c_info, c_amt, c_edit, c_del = st.columns([0.5, 0.25, 0.12, 0.13])
         
-        # 🎯 බටන් දෙක Inline (එකම පේළියක)
-        c1, c2, c3 = st.columns([0.6, 0.2, 0.2])
-        with c2:
+        with c_info:
+            st.markdown(f"""
+                <div class="trans-row {'trans-income' if is_inc else 'trans-expense'}">
+                    <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
+                </div>""", unsafe_allow_html=True)
+        
+        with c_amt:
+            st.markdown(f"""
+                <div style="height:55px; display:flex; align-items:center; font-weight:700; color:{'#28a745' if is_inc else '#dc3545'};">
+                    {'+' if is_inc else '-'}{row['Amount']:,.0f}
+                </div>""", unsafe_allow_html=True)
+        
+        with c_edit:
+            st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True) # Vertical alignment
             if st.button("✏️", key=f"ed_{idx}"):
                 st.query_params.update(edit=idx); st.rerun()
-        with c3:
+                
+        with c_del:
+            st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
             if st.button("🗑️", key=f"dl_{idx}"):
                 worksheet.delete_rows(int(idx)+2); st.rerun()
 
-# --- 9. Floating Menu ---
+# --- 8. Forms (Logic unchanged) ---
+if form_type == "ManageCats":
+    st.subheader("⚙️ Settings")
+    new_c = st.text_input("New Category")
+    if st.button("➕ Add"):
+        if new_c: cat_sheet.append_row([new_c]); st.rerun()
+
+elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
+    curr_t = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
+    scats = [c for c in categories if (c in ["Salary", "House Rental"] if curr_t=="Income" else c not in ["Salary", "House Rental"])]
+    with st.form("f"):
+        f_cat = st.selectbox("Category", scats)
+        f_amt = st.number_input("Amount", min_value=0.0)
+        if st.form_submit_button("Save"):
+            ts = f"{date.today()} {datetime.now().strftime('%H:%M:%S')}"
+            r = [ts, f_cat, f_amt, "", curr_t, "Cash", "Bank", ""]
+            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r])
+            else: worksheet.append_row(r)
+            st.query_params.clear(); st.rerun()
+
+# --- 9. FAB Menu ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
