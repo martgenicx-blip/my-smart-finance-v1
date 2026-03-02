@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (layout එක සහ + බටන් එකේ ස්ටයිල්) ---
+# --- CSS (Transactions පෙනුම වැඩි දියුණු කළා) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -35,14 +35,25 @@ st.markdown("""
         border-radius: 15px !important;
         border: 1px solid #e0e0e0 !important;
     }
-    /* Category + Button Style */
-    .add-cat-btn {
-        margin-top: 28px;
-    }
     .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
-    .trans-card { background: white; padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+    
+    /* --- Quality Transaction Card Style --- */
+    .trans-card { 
+        background: white; 
+        padding: 12px 15px; 
+        border-radius: 10px; 
+        margin-bottom: 10px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        border-left: 5px solid #ccc; /* Default border */
+    }
+    .trans-income { border-left: 5px solid #28a745 !important; } /* Green line for Income */
+    .trans-expense { border-left: 5px solid #dc3545 !important; } /* Red line for Expense */
+    
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -63,9 +74,9 @@ try:
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
-    
-    # Sheet 1: Transactions, Sheet 2: Categories (මෙහි Categories කියල අලුත් sheet එකක් හදන්න)
     worksheet = sh.worksheet("Sheet1")
+    
+    # Categories Handling
     try:
         cat_sheet = sh.worksheet("Categories")
     except:
@@ -97,8 +108,6 @@ query_form = st.query_params.get("form")
 # --- 2. DATA ENTRY FORM ---
 if query_form in ["Income", "Expense", "Transfer"]:
     st.markdown(f"### 📝 New {query_form}")
-    
-    # අලුත් Category එකක් එකතු කරන්න modal එකක් වගේ
     with st.expander("➕ Add New Category"):
         new_cat = st.text_input("Category Name")
         if st.button("Save Category"):
@@ -108,13 +117,9 @@ if query_form in ["Income", "Expense", "Transfer"]:
 
     with st.form("entry_form", clear_on_submit=True):
         f_date = st.date_input("Select Date", date.today())
-        
-        # මෙතන Category එක තෝරන්න පුළුවන්
         f_cat = st.selectbox("Select Category", categories if categories else ["General"])
-        
         f_amount = st.number_input("Enter Amount (LKR)", value=0.0, step=1.0)
         f_note = st.text_input("Add a Note", placeholder="Write details here...")
-        
         if st.form_submit_button("Save Record ✅"):
             if f_amount > 0:
                 ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
@@ -143,20 +148,25 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 4. RECENT TRANSACTIONS ---
+# --- 4. RECENT TRANSACTIONS (දැන් මේක වඩාත් පැහැදිලියි) ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest = df.iloc[::-1].head(10)
     for _, row in latest.iterrows():
-        color = "#dc3545" if row['Type'] == "Expense" else "#28a745"
+        # Type එක අනුව Color Class එක තෝරනවා
+        card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
+        amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
+        
         st.markdown(f"""
-            <div class="trans-card">
+            <div class="trans-card {card_class}">
                 <div>
                     <div style="font-size:11px; color:gray;">{row['Date']}</div>
-                    <div style="font-weight:bold; font-size:14px;">{row['Category']}</div>
-                    <div style="background:#eee; display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; color:#555;">BANK</div>
+                    <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
+                    <div style="font-size:12px; color:#666;">{row['Note'] if row['Note'] else 'No Note'}</div>
                 </div>
-                <div style="color:{color}; font-weight:bold; font-size:16px;">{row['Amount']:,.0f}</div>
+                <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
+                    {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
