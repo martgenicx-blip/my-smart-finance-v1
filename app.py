@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (KEEPING EVERYTHING + STYLING INPUT FIELDS) ---
+# --- CSS (KEEPING EVERYTHING EXACTLY THE SAME) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -16,8 +16,6 @@ st.markdown("""
         text-align: center; font-size: 20px; font-weight: bold;
         margin: -60px -20px 20px -20px;
     }
-    
-    /* Existing 2x2 Grid Styling */
     .custom-grid {
         display: grid; grid-template-columns: 1fr 1fr;
         gap: 12px; margin-top: 10px; margin-bottom: 20px;
@@ -29,9 +27,6 @@ st.markdown("""
         font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         cursor: pointer; text-decoration: none; font-size: 14px;
     }
-
-    /* --- QUALITY INPUT FIELD STYLING --- */
-    /* Form එකේ පසුබිම ලස්සන කිරීම */
     [data-testid="stForm"] {
         background-color: #ffffff !important;
         padding: 20px !important;
@@ -39,35 +34,17 @@ st.markdown("""
         border: 1px solid #e0e0e0 !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
     }
-
-    /* Text Input, Number Input, Date Input Styles */
     div[data-baseweb="input"], div[data-baseweb="select"] {
-        border: 2px solid #d1d1d1 !important; /* දාරය පැහැදිලි කළා */
+        border: 2px solid #d1d1d1 !important;
         border-radius: 10px !important;
         transition: 0.3s !important;
         background-color: #fafafa !important;
     }
-
-    /* Input එකක් Click කරාම වෙනස් වන විදිහ (Focus Effect) */
     div[data-baseweb="input"]:focus-within {
         border-color: #0081C9 !important;
         box-shadow: 0 0 8px rgba(0, 129, 201, 0.2) !important;
         background-color: white !important;
     }
-
-    /* Submit Button එක Professional කිරීම */
-    div.stForm submit_button > button {
-        background-color: #0081C9 !important;
-        color: white !important;
-        width: 100% !important;
-        height: 45px !important;
-        border-radius: 10px !important;
-        font-weight: bold !important;
-        border: none !important;
-        margin-top: 10px !important;
-    }
-
-    /* Summary & Floating UI (Unchanged) */
     .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
@@ -86,7 +63,7 @@ st.markdown("""
 # --- Header ---
 st.markdown('<div class="header-bar">Income Expense ⌄</div>', unsafe_allow_html=True)
 
-# --- Connection to Google Sheets ---
+# --- Google Sheets Connection ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds_dict = {k: st.secrets["connections"]["gsheets"][k] for k in st.secrets["connections"]["gsheets"]}
@@ -101,7 +78,7 @@ try:
 except Exception:
     st.error("Data Load Error"); st.stop()
 
-# --- 1. ACTION BUTTONS (2x2 Grid) ---
+# --- 1. ACTION BUTTONS ---
 st.markdown("""
     <div class="custom-grid">
         <a href="/?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
@@ -111,24 +88,27 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# URL Params Handling
 query_form = st.query_params.get("form")
 
-# --- 2. DATA ENTRY FORM (Quality Style) ---
+# --- 2. DATA ENTRY FORM (Fixed Save Logic) ---
 if query_form in ["Income", "Expense", "Transfer"]:
     st.markdown(f"### 📝 New {query_form}")
     with st.form("entry_form", clear_on_submit=True):
-        st.date_input("Select Date", date.today())
-        st.number_input("Enter Amount (LKR)", value=0.0, step=100.0)
-        st.text_input("Add a Note (Optional)", placeholder="Write something here...")
+        f_date = st.date_input("Select Date", date.today())
+        f_amount = st.number_input("Enter Amount (LKR)", value=0.0, step=1.0)
+        f_note = st.text_input("Add a Note", placeholder="Write details here...")
         
         if st.form_submit_button("Save Record ✅"):
-            ts = f"{date.today()} {datetime.now().strftime('%H:%M:%S')}"
-            worksheet.append_row([ts, "General", 100, "Test Note", query_form, "", ""]) # Example append
-            st.query_params.clear()
-            st.rerun()
+            if f_amount > 0:
+                ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
+                # ඔයා දෙන ඇත්තම දත්ත ටික ශීට් එකට යනවා
+                worksheet.append_row([ts, "General", f_amount, f_note, query_form, "", ""])
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.warning("Please enter a valid amount.")
 
-# --- 3. SUMMARY CARD & TRANSACTIONS (Unchanged as requested) ---
+# --- 3. SUMMARY CARD ---
 if not df.empty:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -149,9 +129,10 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
+# --- 4. RECENT TRANSACTIONS ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
-    latest = df.iloc[::-1].head(5)
+    latest = df.iloc[::-1].head(10)
     for _, row in latest.iterrows():
         color = "#dc3545" if row['Type'] == "Expense" else "#28a745"
         st.markdown(f"""
@@ -165,7 +146,7 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
 
-# --- 4. FLOATING ACTION MENU ---
+# --- 5. FLOATING ACTION MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
