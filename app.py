@@ -7,15 +7,18 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (KEEPING EVERYTHING EXACTLY THE SAME) ---
+# --- CSS (KEEPING EVERYTHING THE SAME) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
+    
+    /* Header එකේ v අකුර වගේ තිබුණ icon එක අයින් කළා */
     .header-bar {
         background-color: #0081C9; padding: 15px; color: white;
         text-align: center; font-size: 20px; font-weight: bold;
         margin: -60px -20px 20px -20px;
     }
+
     .custom-grid {
         display: grid; grid-template-columns: 1fr 1fr;
         gap: 12px; margin-top: 10px; margin-bottom: 20px;
@@ -34,15 +37,13 @@ st.markdown("""
         border: 1px solid #e0e0e0 !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
     }
-    div[data-baseweb="input"], div[data-baseweb="select"] {
+    div[data-baseweb="input"] {
         border: 2px solid #d1d1d1 !important;
         border-radius: 10px !important;
-        transition: 0.3s !important;
         background-color: #fafafa !important;
     }
     div[data-baseweb="input"]:focus-within {
         border-color: #0081C9 !important;
-        box-shadow: 0 0 8px rgba(0, 129, 201, 0.2) !important;
         background-color: white !important;
     }
     .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
@@ -50,18 +51,17 @@ st.markdown("""
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     .trans-card { background: white; padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: 0.3s ease; }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-wrapper:hover .fab-main { transform: rotate(45deg); background: #333; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Header ---
-st.markdown('<div class="header-bar">Income Expense ⌄</div>', unsafe_allow_html=True)
+# --- Header (Icon එක අයින් කළා) ---
+st.markdown('<div class="header-bar">Income Expense</div>', unsafe_allow_html=True)
 
 # --- Google Sheets Connection ---
 try:
@@ -90,23 +90,19 @@ st.markdown("""
 
 query_form = st.query_params.get("form")
 
-# --- 2. DATA ENTRY FORM (Fixed Save Logic) ---
+# --- 2. DATA ENTRY FORM ---
 if query_form in ["Income", "Expense", "Transfer"]:
     st.markdown(f"### 📝 New {query_form}")
     with st.form("entry_form", clear_on_submit=True):
         f_date = st.date_input("Select Date", date.today())
         f_amount = st.number_input("Enter Amount (LKR)", value=0.0, step=1.0)
         f_note = st.text_input("Add a Note", placeholder="Write details here...")
-        
         if st.form_submit_button("Save Record ✅"):
             if f_amount > 0:
                 ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-                # ඔයා දෙන ඇත්තම දත්ත ටික ශීට් එකට යනවා
                 worksheet.append_row([ts, "General", f_amount, f_note, query_form, "", ""])
                 st.query_params.clear()
                 st.rerun()
-            else:
-                st.warning("Please enter a valid amount.")
 
 # --- 3. SUMMARY CARD ---
 if not df.empty:
