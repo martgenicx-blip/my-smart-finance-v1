@@ -25,7 +25,6 @@ st.markdown("""
         text-align: center; margin-bottom: 30px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.04);
         border: 1px solid rgba(255,255,255,0.7);
-        position: relative; overflow: hidden;
     }
     .bal-label { color: #8E8E93; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
     .bal-amount { color: #1c1c1e; font-size: 40px; font-weight: 800; letter-spacing: -1.5px; }
@@ -34,55 +33,39 @@ st.markdown("""
     .grid-btn {
         background: #ffffff; border-radius: 22px; padding: 25px 15px; text-align: center;
         text-decoration: none !important; color: #1c1c1e !important; font-weight: 700; font-size: 16px;
-        border: 2px solid #f1f3f5; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        border: 2px solid #f1f3f5; transition: all 0.4s;
     }
-    .grid-btn:hover {
-        transform: translateY(-8px); border-color: #007AFF;
-        box-shadow: 0 15px 30px rgba(0,122,255,0.12);
-        background: #fff;
-    }
+    .grid-btn:hover { transform: translateY(-8px); border-color: #007AFF; box-shadow: 0 15px 30px rgba(0,122,255,0.12); }
 
     /* CLICKABLE RECENT ACTIVITY CARD */
     .activity-link { text-decoration: none !important; color: inherit !important; display: block; margin-bottom: 12px; }
-    
     .activity-container {
         background: white; border-radius: 20px;
         padding: 18px 25px; position: relative;
         display: flex; justify-content: space-between; align-items: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #f8f9fa;
-        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: 0.3s;
     }
-    .activity-container:hover { 
-        transform: scale(1.02); border-color: #007AFF; 
-        box-shadow: 0 10px 20px rgba(0,122,255,0.08);
-        background-color: #f0f7ff;
-    }
+    .activity-container:hover { transform: scale(1.02); border-color: #007AFF; background-color: #f0f7ff; }
 
     .v-line { position: absolute; left: 0; top: 15px; bottom: 15px; width: 6px; border-radius: 0 10px 10px 0; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* FLOATING ACTION BUTTON WITH ANIMATION */
+    /* 🔥 FLOATING ACTION BUTTON WITH HOME & ANIMATION */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; }
     .fab-main { 
         width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
         border-radius: 22px; display: flex; justify-content: center; align-items: center; 
         color: white; font-size: 35px; box-shadow: 0 12px 25px rgba(0,122,255,0.35);
-        cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer; transition: 0.3s;
     }
-    .fab-wrapper:hover .fab-main { transform: scale(1.1) rotate(90deg); }
-    
-    .fab-list { 
-        display: none; flex-direction: column; gap: 12px; align-items: flex-end; margin-bottom: 15px;
-        animation: fadeIn 0.3s ease forwards;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
+    .fab-wrapper:hover .fab-main { transform: rotate(90deg) scale(1.1); }
+    .fab-list { display: none; flex-direction: column; gap: 12px; align-items: flex-end; margin-bottom: 15px; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 12px; text-decoration: none !important; transition: 0.2s; }
     .fab-item:hover { transform: translateX(-5px); }
-    .fab-label { background: #1c1c1e; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .fab-label { background: #1c1c1e; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; color: white; }
     .fab-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
@@ -109,7 +92,7 @@ try:
 
     df, categories, opening_bal = load_data()
 except Exception as e:
-    st.error(f"Error connecting to Sheets: {e}"); st.stop()
+    st.error(f"Error: {e}"); st.stop()
 
 q = st.query_params
 form_type, edit_idx = q.get("form"), q.get("edit")
@@ -135,11 +118,9 @@ if not form_type and not edit_idx:
     if not df.empty:
         st.markdown('<h3 style="font-size:18px; font-weight:800; margin-bottom:20px;">Recent Transactions</h3>', unsafe_allow_html=True)
         recent_items = df.tail(10).iloc[::-1]
-        
         for idx_row, row in recent_items.iterrows():
             is_inc = row['Type'] == 'Income'
             v_color, t_color, sym = ("bg-income", "#34C759", "+") if is_inc else ("bg-expense", "#FF3B30", "-")
-            
             st.markdown(f"""
                 <a href="./?edit={idx_row}" target="_self" class="activity-link">
                     <div class="activity-container">
@@ -155,7 +136,7 @@ if not form_type and not edit_idx:
 
 # --- 6. HISTORY PAGE ---
 elif form_type == "History":
-    st.markdown('<div class="net-balance-card"><h3>📜 Transaction History</h3></div>', unsafe_allow_html=True)
+    st.markdown('<div class="net-balance-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
     if not df.empty:
         for idx_row, row in df.iloc[::-1].iterrows():
             is_inc = row['Type'] == 'Income'
@@ -168,41 +149,34 @@ elif form_type == "History":
                     if st.button("🗑️", key=f"del_{idx_row}"):
                         worksheet.delete_rows(int(idx_row)+2); st.cache_data.clear(); st.rerun()
                 st.divider()
-    if st.button("Back Home 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 7. FORMS (EDIT/ADD) ---
+# --- 7. FORMS ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
     t = form_type if not is_edit else row_data['Type']
-    
     st.markdown(f'<div class="net-balance-card"><h3>📝 {t}</h3></div>', unsafe_allow_html=True)
     
-    # 🔥 FIXED DATE LOGIC FOR VALUE ERROR
     if is_edit:
-        try:
-            current_date = pd.to_datetime(row_data['Date']).date()
-        except:
-            current_date = date.today()
-    else:
-        current_date = date.today()
+        try: current_date = pd.to_datetime(row_data['Date']).date()
+        except: current_date = date.today()
+    else: current_date = date.today()
 
     f_date = st.date_input("Date", current_date)
     f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
     f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
-    f_note = st.text_input("Note", value=row_data['Note'] if is_edit else "")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Save ✅", use_container_width=True):
-            new_row = [str(f_date), f_cat, f_amt, f_note, t, "Cash", "Bank", ""]
+            new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
             if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
             else: worksheet.append_row(new_row)
             st.cache_data.clear(); st.query_params.clear(); st.rerun()
     with col2:
         if st.button("Cancel", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 8. FAB ---
+# --- 8. 🔥 RESTORED FAB WITH HOME BUTTON ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
