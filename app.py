@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- 2. CSS Styles (Custom UI) ---
+# --- 2. CSS Styles ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -39,7 +39,6 @@ st.markdown("""
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     
-    /* Transaction Card Style */
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 10px; 
         margin-bottom: 10px; display: flex; justify-content: space-between; 
@@ -61,7 +60,7 @@ st.markdown("""
 # --- 3. Header ---
 st.markdown('<div class="header-bar">Income Expense Tracker</div>', unsafe_allow_html=True)
 
-# --- 4. Google Sheets Connection & Data Prep ---
+# --- 4. Google Sheets Connection ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds_dict = {k: st.secrets["connections"]["gsheets"][k] for k in st.secrets["connections"]["gsheets"]}
@@ -70,7 +69,6 @@ try:
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
     
-    # Categories Handling
     try:
         cat_sheet = sh.worksheet("Categories")
     except:
@@ -78,12 +76,17 @@ try:
         cat_sheet.append_row(["CategoryName"])
 
     existing_cats = [row['CategoryName'] for row in cat_sheet.get_all_records()]
-    default_cats = ["Salary", "Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
     
-    for cat in default_cats:
+    # Defaults
+    income_defaults = ["Salary", "House Rental"]
+    expense_defaults = ["Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
+    all_defaults = income_defaults + expense_defaults
+    
+    for cat in all_defaults:
         if cat not in existing_cats:
             cat_sheet.append_row([cat])
     
+    # Reload categories
     categories = [row['CategoryName'] for row in cat_sheet.get_all_records()]
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
@@ -95,7 +98,7 @@ except Exception as e:
     st.error(f"Connection Error: {str(e)}")
     st.stop()
 
-# --- 5. Action Grid Buttons ---
+# --- 5. Action Buttons ---
 st.markdown(f"""
     <div class="custom-grid">
         <a href="./?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
@@ -111,6 +114,12 @@ query_form = st.query_params.get("form")
 if query_form in ["Income", "Expense", "Transfer"]:
     st.markdown(f"### 📝 New {query_form}")
     
+    # Filter categories based on selection
+    if query_form == "Income":
+        show_cats = [c for c in categories if c in ["Salary", "House Rental"]]
+    else:
+        show_cats = [c for c in categories if c not in ["Salary", "House Rental"]]
+
     with st.expander("➕ Add Custom Category"):
         new_cat = st.text_input("New Category Name")
         if st.button("Add Now"):
@@ -121,14 +130,12 @@ if query_form in ["Income", "Expense", "Transfer"]:
 
     with st.form("entry_form", clear_on_submit=True):
         f_date = st.date_input("Date", date.today())
-        f_cat = st.selectbox("Category", categories if categories else ["General"])
+        f_cat = st.selectbox("Category", show_cats if show_cats else ["General"])
         f_amount = st.number_input("Amount (LKR)", min_value=0.0, step=10.0)
-        f_desc = st.text_input("Description", placeholder="What is this for?")
-        f_note = st.text_area("Note", placeholder="Any extra details...")
+        f_desc = st.text_input("Description")
+        f_note = st.text_area("Note")
         
-        # Default Accounts
-        f_from = "Cash"
-        f_to = "Bank"
+        f_from, f_to = "Cash", "Bank"
         if query_form == "Transfer":
             c1, c2 = st.columns(2)
             with c1: f_from = st.text_input("From", value="Cash")
@@ -137,14 +144,11 @@ if query_form in ["Income", "Expense", "Transfer"]:
         if st.form_submit_button("Save Record ✅"):
             if f_amount > 0:
                 ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-                # Saving order: Date, Category, Amount, Description, Type, From_Account, To_Account, Note
                 worksheet.append_row([ts, f_cat, f_amount, f_desc, query_form, f_from, f_to, f_note])
                 st.query_params.clear()
                 st.rerun()
-            else:
-                st.warning("Please enter an amount.")
 
-# --- 7. Summary Dashboard ---
+# --- 7. Dashboard & 8. Recent Transactions (Same as before) ---
 if not df.empty:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -165,15 +169,12 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 8. Recent Transactions ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest = df.iloc[::-1].head(10)
     for _, row in latest.iterrows():
         card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
         amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
-        sign = "+" if row['Type'] == "Income" else "-"
-        
         st.markdown(f"""
             <div class="trans-card {card_class}">
                 <div>
@@ -182,14 +183,12 @@ if not df.empty:
                     <div style="font-size:12px; color:#666;">{row.get('Description', '')}</div>
                 </div>
                 <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
-                    {sign}{row['Amount']:,.0f}
+                    {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
                 </div>
             </div>
             """, unsafe_allow_html=True)
-else:
-    st.info("No transactions found.")
 
-# --- 9. Floating Action Menu ---
+# --- 9. Floating Menu ---
 st.markdown(f"""
     <div class="fab-wrapper">
         <div class="fab-list">
