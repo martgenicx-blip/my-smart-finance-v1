@@ -21,72 +21,51 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,122,255,0.25);
     }
 
-    /* 🔥 MODERN PREMIUM BALANCE CARD */
+    /* PREMIUM BALANCE CARD */
     .premium-card {
         background: linear-gradient(145deg, #ffffff, #f0f4f8);
-        border-radius: 30px;
-        padding: 35px;
+        border-radius: 30px; padding: 35px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.05);
         border: 1px solid rgba(255,255,255,0.8);
-        margin-bottom: 30px;
-        position: relative;
-        overflow: hidden;
+        margin-bottom: 30px; position: relative; overflow: hidden;
     }
-    .premium-card::before {
-        content: ""; position: absolute; top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background: radial-gradient(circle, rgba(0,122,255,0.03) 0%, transparent 70%);
-        pointer-events: none;
-    }
-    .balance-label {
-        color: #8E8E93; font-size: 14px; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px;
-    }
-    .balance-amount {
-        color: #1c1c1e; font-size: 42px; font-weight: 800;
-        letter-spacing: -1px; margin-bottom: 25px;
-    }
-    .stat-container {
-        display: flex; gap: 20px; padding-top: 25px;
-        border-top: 1px solid rgba(0,0,0,0.05);
-    }
-    .stat-box {
-        flex: 1; padding: 15px; border-radius: 20px;
-        background: rgba(255,255,255,0.5);
-    }
+    .balance-label { color: #8E8E93; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
+    .balance-amount { color: #1c1c1e; font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 25px; }
+    .stat-container { display: flex; gap: 20px; padding-top: 25px; border-top: 1px solid rgba(0,0,0,0.05); }
+    .stat-box { flex: 1; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.5); }
     .stat-inc { border-left: 5px solid #34C759; }
     .stat-exp { border-left: 5px solid #FF3B30; }
     .stat-title { color: #8E8E93; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
     .stat-value { font-size: 18px; font-weight: 700; }
 
-    /* Buttons & Activity Styles (Unchanged) */
+    /* Buttons & Activity Styles */
     .grid-btn {
         background: white; border-radius: 20px; padding: 20px; 
         text-align: center; text-decoration: none !important; 
         color: #1c1c1e !important; font-weight: 700; 
-        border: 1px solid #f1f3f5; display: block;
-        transition: all 0.3s ease;
+        border: 1px solid #f1f3f5; display: block; transition: all 0.3s ease;
     }
     .grid-btn:hover { border-color: #007AFF; transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,122,255,0.1); }
-    div.stButton > button { border-radius: 15px !important; width: 100% !important; height: 50px !important; font-weight: 700 !important; }
+    
+    div.stButton > button { border-radius: 12px !important; transition: 0.3s !important; }
+    
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         display: flex; align-items: center; justify-content: space-between;
         transition: 0.3s ease; border: 1px solid #f8f9fa;
-        overflow: hidden; position: relative; padding: 15px 20px 15px 28px;
+        overflow: hidden; position: relative; padding: 12px 15px 12px 25px;
     }
-    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; }
+    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* FAB (Unchanged) */
+    /* FAB */
     .fab-wrapper { position: fixed; bottom: 35px; right: 30px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
     .fab-main { 
         width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
         border-radius: 22px; display: flex; justify-content: center; align-items: center; 
-        color: white; font-size: 32px; box-shadow: 0 12px 25px rgba(0,122,255,0.4); cursor: pointer; transition: 0.4s;
+        color: white; font-size: 32px; box-shadow: 0 12px 25px rgba(0,122,255,0.4); cursor: pointer;
     }
-    .fab-wrapper:hover .fab-main { transform: rotate(135deg); }
     .fab-list { display: none; flex-direction: column; gap: 12px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 12px; text-decoration: none !important; }
@@ -95,7 +74,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. Data Connection (Cashed) ---
+# --- 3. Data Connection (Cached) ---
 @st.cache_resource
 def get_gsheet_client():
     creds = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -131,7 +110,6 @@ if not form_type and not edit_idx:
         t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
         curr_bal = opening_bal + t_inc - t_exp
 
-        # 🔥 THE NEW PREMIUM QUALITY CARD
         st.markdown(f"""
             <div class="premium-card">
                 <div class="balance-label">Net Balance</div>
@@ -159,47 +137,52 @@ if not form_type and not edit_idx:
 
     if not df.empty:
         st.markdown('<h3 style="font-size:20px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
-        for i, idx in enumerate(df.index[-10:][::-1]):
-            row = df.loc[idx]
+        # පේළි 10ක් පෙන්වමු
+        recent_items = df.tail(10).iloc[::-1]
+        for idx_row, row in recent_items.iterrows():
             v_line_color = "bg-income" if row['Type'] == 'Income' else "bg-expense"
             st.markdown(f'<div class="activity-container"><div class="v-line {v_line_color}"></div>', unsafe_allow_html=True)
-            c1, c2, c3 = st.columns([0.7, 0.2, 0.1])
+            c1, c2, c3, c4 = st.columns([0.55, 0.25, 0.1, 0.1])
             with c1: st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
             with c2: st.markdown(f"<div style='font-weight:700; text-align:right; margin-top:8px;'>{row['Amount']:,.0f}</div>", unsafe_allow_html=True)
             with c3:
-                if st.button("🗑️", key=f"d_{idx}"):
-                    worksheet.delete_rows(int(idx)+2)
+                if st.button("📝", key=f"edit_{idx_row}"):
+                    st.query_params.update(edit=idx_row)
+                    st.rerun()
+            with c4:
+                if st.button("🗑️", key=f"del_{idx_row}"):
+                    worksheet.delete_rows(int(idx_row)+2)
                     st.cache_data.clear(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS ---
-elif form_type in ["Income", "Expense", "Transfer"]:
-    st.markdown(f'<div class="premium-card"><h3>📝 Add {form_type}</h3></div>', unsafe_allow_html=True)
-    f_date = st.date_input("Date", date.today())
-    f_cat = st.selectbox("Category", categories)
-    f_amt = st.number_input("Amount", min_value=0.0)
-    f_desc = st.text_input("Note")
+# --- 6. FORMS (Add & Edit) ---
+elif form_type or edit_idx:
+    is_edit = edit_idx is not None
+    row_data = df.loc[int(edit_idx)] if is_edit else None
+    t = form_type if not is_edit else row_data['Type']
+    
+    st.markdown(f'<div class="premium-card"><h3>📝 {"Edit" if is_edit else "Add"} {t}</h3></div>', unsafe_allow_html=True)
+    
+    # දැනට තියෙන දත්ත පෙන්වමු (Edit නම්)
+    f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
+    f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
+    f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
+    f_desc = st.text_input("Note", value=row_data['Note'] if is_edit else "")
     
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("Save Entry ✅"):
-            worksheet.append_row([str(f_date), f_cat, f_amt, f_desc, form_type, "Cash", "Bank", ""])
+        if st.button("Update ✅" if is_edit else "Save Entry ✅"):
+            new_row = [str(f_date), f_cat, f_amt, f_desc, t, "Cash", "Bank", ""]
+            if is_edit:
+                worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
+            else:
+                worksheet.append_row(new_row)
             st.cache_data.clear(); st.query_params.clear(); st.rerun()
     with col2:
         if st.button("Cancel ❌"): st.query_params.clear(); st.rerun()
     with col3:
         if st.button("Home 🏠"): st.query_params.clear(); st.rerun()
-
-# --- 7. HISTORY & SETTINGS (Condensed) ---
-elif form_type == "History":
-    st.markdown('<div class="premium-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
-    st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-    if st.button("Back Home 🏠"): st.query_params.clear(); st.rerun()
-
-elif form_type == "ManageCats":
-    st.markdown('<div class="premium-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
-    if st.button("Back Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 9. FLOATING ACTION MENU ---
 st.markdown("""
