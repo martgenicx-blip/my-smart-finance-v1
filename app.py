@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles (Complete & Functional) ---
+# --- 2. CSS Styles (Mobile Optimized) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -49,7 +49,23 @@ st.markdown("""
     .trans-income { border-left-color: #28a745; }
     .trans-expense { border-left-color: #dc3545; }
     
-    /* 🔥 Fixed Floating Action Button Logic */
+    /* Inline Action Buttons Fix */
+    .action-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: -10px;
+        margin-bottom: 15px;
+        padding-right: 5px;
+    }
+    div.stButton > button {
+        padding: 5px 15px !important;
+        border-radius: 8px !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+
+    /* FAB Menu */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { 
         width: 60px; height: 60px; background: #0081C9; border-radius: 50%; 
@@ -146,7 +162,7 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
             else: worksheet.append_row(row_data)
             st.query_params.clear(); st.rerun()
 
-# --- 7. Recent Transactions (Full Functional) ---
+# --- 7. Recent Transactions (Inline Buttons) ---
 if not form_type and not edit_idx and not df.empty:
     st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
     for idx in df.index[-10:][::-1]:
@@ -160,11 +176,19 @@ if not form_type and not edit_idx and not df.empty:
                 </div>
             </div>
         """, unsafe_allow_html=True)
-        c1, c2, c3 = st.columns([0.7, 0.15, 0.15])
-        if c2.button("✏️", key=f"edit_{idx}"): st.query_params.update(edit=idx); st.rerun()
-        if c3.button("🗑️", key=f"del_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
+        
+        # 🎯 බටන් දෙක එකම පේළියට (Inline)
+        col_space, col_edit, col_del = st.columns([0.6, 0.2, 0.2])
+        with col_edit:
+            if st.button("✏️", key=f"edit_{idx}"):
+                st.query_params.update(edit=idx)
+                st.rerun()
+        with col_del:
+            if st.button("🗑️", key=f"del_{idx}"):
+                worksheet.delete_rows(int(idx)+2)
+                st.rerun()
 
-# --- 8. 🎯 FIXED FLOATING MENU (ALL BUTTONS) ---
+# --- 8. Floating Menu ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
