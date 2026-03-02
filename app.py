@@ -13,6 +13,7 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8f9fc; }
 
+    /* Top Header */
     .header-wrapper {
         background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
         padding: 45px 15px; color: white; border-radius: 0 0 40px 40px;
@@ -20,6 +21,7 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,122,255,0.2);
     }
 
+    /* Modern Cards */
     .net-balance-card {
         background: white; border-radius: 28px; padding: 30px;
         text-align: center; margin-bottom: 30px;
@@ -29,30 +31,29 @@ st.markdown("""
     .bal-label { color: #8E8E93; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
     .bal-amount { color: #1c1c1e; font-size: 40px; font-weight: 800; letter-spacing: -1.5px; }
 
-    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 35px; }
-    .grid-btn {
-        background: #ffffff; border-radius: 22px; padding: 25px 15px; text-align: center;
-        text-decoration: none !important; color: #1c1c1e !important; font-weight: 700; font-size: 16px;
-        border: 2px solid #f1f3f5; transition: all 0.4s;
-    }
-    .grid-btn:hover { transform: translateY(-8px); border-color: #007AFF; box-shadow: 0 15px 30px rgba(0,122,255,0.12); }
-
-    /* CLICKABLE RECENT ACTIVITY CARD */
+    /* Clickable List Items */
     .activity-link { text-decoration: none !important; color: inherit !important; display: block; margin-bottom: 12px; }
     .activity-container {
-        background: white; border-radius: 20px;
-        padding: 18px 25px; position: relative;
+        background: white; border-radius: 20px; padding: 18px 25px; position: relative;
         display: flex; justify-content: space-between; align-items: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #f8f9fa;
-        transition: 0.3s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #f8f9fa; transition: 0.3s;
     }
     .activity-container:hover { transform: scale(1.02); border-color: #007AFF; background-color: #f0f7ff; }
-
     .v-line { position: absolute; left: 0; top: 15px; bottom: 15px; width: 6px; border-radius: 0 10px 10px 0; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* 🔥 FLOATING ACTION BUTTON WITH HOME & ANIMATION */
+    /* Home Navigation Button for Interior Pages */
+    .nav-home-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: white; color: #007AFF; padding: 10px 20px;
+        border-radius: 15px; text-decoration: none !important;
+        font-weight: 700; font-size: 14px; margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #f1f3f5;
+    }
+    .nav-home-btn:hover { background: #f0f7ff; transform: translateX(-5px); transition: 0.3s; }
+
+    /* Floating Action Button (FAB) */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; }
     .fab-main { 
         width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
@@ -66,7 +67,7 @@ st.markdown("""
     .fab-item { display: flex; align-items: center; gap: 12px; text-decoration: none !important; transition: 0.2s; }
     .fab-item:hover { transform: translateX(-5px); }
     .fab-label { background: #1c1c1e; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; color: white; }
-    .fab-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+    .fab-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,7 +85,8 @@ try:
     @st.cache_data(ttl=30)
     def load_data():
         df_all = pd.DataFrame(worksheet.get_all_records())
-        if not df_all.empty: df_all['Amount'] = pd.to_numeric(df_all['Amount'], errors='coerce').fillna(0)
+        if not df_all.empty: 
+            df_all['Amount'] = pd.to_numeric(df_all['Amount'], errors='coerce').fillna(0)
         cats = sorted(list(set([row['CategoryName'] for row in cat_sheet.get_all_records() if row['CategoryName']])))
         try: op_bal = float(cat_sheet.acell('B1').value.replace(',', ''))
         except: op_bal = 0.0
@@ -106,12 +108,13 @@ if not form_type and not edit_idx:
         curr_bal = opening_bal + t_inc - t_exp
         st.markdown(f'<div class="net-balance-card"><div class="bal-label">Net Balance</div><div class="bal-amount">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
 
+    # Main Grid
     st.markdown("""
-        <div class="grid-container">
-            <a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a>
-            <a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a>
-            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a>
-            <a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a>
+        <div class="grid-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 35px;">
+            <a href="./?form=Income" target="_self" class="grid-btn" style="background:#ffffff; border-radius:22px; padding:25px 15px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:2px solid #f1f3f5; display:block;">💰<br>Income</a>
+            <a href="./?form=Expense" target="_self" class="grid-btn" style="background:#ffffff; border-radius:22px; padding:25px 15px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:2px solid #f1f3f5; display:block;">💸<br>Expense</a>
+            <a href="./?form=Transfer" target="_self" class="grid-btn" style="background:#ffffff; border-radius:22px; padding:25px 15px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:2px solid #f1f3f5; display:block;">🔄<br>Transfer</a>
+            <a href="./?form=History" target="_self" class="grid-btn" style="background:#ffffff; border-radius:22px; padding:25px 15px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:2px solid #f1f3f5; display:block;">📜<br>History</a>
         </div>
     """, unsafe_allow_html=True)
 
@@ -136,6 +139,8 @@ if not form_type and not edit_idx:
 
 # --- 6. HISTORY PAGE ---
 elif form_type == "History":
+    # 🔥 TOP HOME BUTTON
+    st.markdown('<a href="./" target="_self" class="nav-home-btn">🏠 Back to Home</a>', unsafe_allow_html=True)
     st.markdown('<div class="net-balance-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
     if not df.empty:
         for idx_row, row in df.iloc[::-1].iterrows():
@@ -152,6 +157,9 @@ elif form_type == "History":
 
 # --- 7. FORMS ---
 elif form_type or edit_idx:
+    # 🔥 TOP HOME BUTTON
+    st.markdown('<a href="./" target="_self" class="nav-home-btn">🏠 Back to Home</a>', unsafe_allow_html=True)
+    
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
     t = form_type if not is_edit else row_data['Type']
@@ -168,7 +176,7 @@ elif form_type or edit_idx:
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Save ✅", use_container_width=True):
+        if st.button("Save Entry ✅", use_container_width=True):
             new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
             if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
             else: worksheet.append_row(new_row)
@@ -176,7 +184,7 @@ elif form_type or edit_idx:
     with col2:
         if st.button("Cancel", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 8. 🔥 RESTORED FAB WITH HOME BUTTON ---
+# --- 8. FAB ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
