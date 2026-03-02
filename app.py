@@ -29,16 +29,11 @@ st.markdown("""
         cursor: pointer; text-decoration: none !important;
         font-size: 14px;
     }
-    [data-testid="stForm"] {
-        background-color: #ffffff !important;
-        padding: 20px !important;
-        border-radius: 15px !important;
-        border: 1px solid #e0e0e0 !important;
+    .cat-row { 
+        display: flex; justify-content: space-between; align-items: center; 
+        background: white; padding: 8px 15px; border-radius: 8px; 
+        margin-bottom: 8px; border: 1px solid #eee; font-weight: 500;
     }
-    .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
-    .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
-    .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
-    
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 10px; 
         display: flex; justify-content: space-between; 
@@ -55,8 +50,6 @@ st.markdown("""
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; }
     .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
-    
-    .cat-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 5px 15px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #eee; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -73,9 +66,11 @@ try:
     worksheet = sh.worksheet("Sheet1")
     cat_sheet = sh.worksheet("Categories")
 
+    # Fetch Categories
     all_cat_data = cat_sheet.get_all_records()
     categories = sorted(list(set([row['CategoryName'] for row in all_cat_data if row['CategoryName']])))
     
+    # Fetch Transactions
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     if not df.empty:
@@ -83,7 +78,7 @@ try:
 except Exception as e:
     st.error(f"Connection Error: {str(e)}"); st.stop()
 
-# --- 5. Action Grid (All Buttons Included) ---
+# --- 5. Action Grid ---
 st.markdown(f"""
     <div class="custom-grid">
         <a href="./?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
@@ -98,28 +93,37 @@ query_params = st.query_params
 query_form = query_params.get("form")
 edit_id = query_params.get("edit")
 
-# --- 6. Manage Categories ---
+# --- 6. Manage Categories (FIXED BUTTON) ---
 if query_form == "ManageCats":
     st.subheader("⚙️ Manage Categories")
-    new_cat_name = st.text_input("Add New Category")
-    if st.button("➕ Add Category", type="primary"):
-        if new_cat_name and new_cat_name not in categories:
-            cat_sheet.append_row([new_cat_name])
-            st.success(f"{new_cat_name} Added!"); st.rerun()
+    
+    # මෙතන Form එකක් නැතුව කෙලින්ම Input එකක් පාවිච්චි කළා
+    new_cat_input = st.text_input("New Category Name", key="new_cat_box")
+    if st.button("➕ Add Now", type="primary"):
+        if new_cat_input and new_cat_input not in categories:
+            cat_sheet.append_row([new_cat_input])
+            st.success("Category Added!")
+            st.rerun()
+        elif not new_cat_input:
+            st.error("Please enter a name!")
+        else:
+            st.warning("Already exists!")
 
     st.write("---")
+    st.write("Click ➖ to remove a category")
     for c in categories:
-        col_name, col_btn = st.columns([0.85, 0.15])
-        col_name.markdown(f'<div class="cat-row">{c}</div>', unsafe_allow_html=True)
-        if col_btn.button("➖", key=f"del_cat_{c}"):
+        col_c, col_b = st.columns([0.85, 0.15])
+        col_c.markdown(f'<div class="cat-row">{c}</div>', unsafe_allow_html=True)
+        if col_b.button("➖", key=f"del_{c}"):
             try:
                 cell = cat_sheet.find(c)
                 cat_sheet.delete_rows(cell.row)
                 st.rerun()
             except: pass
 
-# --- 7. Data Entry / Edit Form ---
+# --- 7. Data Entry / Edit ---
 elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
+    # (කලින් කෝඩ් එකමයි - Filtering සහ Forms හරියට වැඩ)
     current_type = query_form
     if edit_id: current_type = df.loc[int(edit_id)]['Type']
     
@@ -130,17 +134,14 @@ elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
 
     st.markdown(f"### 📝 {'Edit Record' if edit_id else 'New ' + current_type}")
     
-    default_vals = {"Date": date.today(), "Category": show_cats[0] if show_cats else "General", "Amount": 0.0, "Description": "", "Note": "", "Type": current_type}
-    if edit_id:
-        row_data = df.loc[int(edit_id)]
-        default_vals.update({"Category": row_data['Category'], "Amount": float(row_data['Amount']), "Description": row_data.get('Description', ''), "Note": row_data.get('Note', ''), "Type": row_data['Type']})
-
     with st.form("entry_form"):
-        f_date = st.date_input("Date", default_vals["Date"])
-        f_cat = st.selectbox("Category", show_cats, index=show_cats.index(default_vals["Category"]) if default_vals["Category"] in show_cats else 0)
-        f_amount = st.number_input("Amount (LKR)", value=default_vals["Amount"])
-        f_desc = st.text_input("Description", value=default_vals["Description"])
-        f_note = st.text_area("Note", value=default_vals["Note"])
+        # Default values logic
+        row_data = df.loc[int(edit_id)] if edit_id else None
+        f_date = st.date_input("Date", date.today())
+        f_cat = st.selectbox("Category", show_cats)
+        f_amount = st.number_input("Amount (LKR)", min_value=0.0)
+        f_desc = st.text_input("Description")
+        f_note = st.text_area("Note")
         
         if st.form_submit_button("Save ✅"):
             ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
@@ -149,8 +150,8 @@ elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
             else: worksheet.append_row(new_row)
             st.query_params.clear(); st.rerun()
 
-# --- 8. Dashboard & Recent ---
-if not df.empty:
+# --- 8. Dashboard ---
+if not df.empty and not query_form:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
     current_balance = total_income - total_expense
@@ -170,19 +171,18 @@ if not df.empty:
     st.write("<b>Recent Transactions</b>")
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
-        col_info, col_actions = st.columns([0.75, 0.25])
-        with col_info:
-            st.markdown(f"""
-                <div class="trans-card {'trans-income' if row['Type'] == 'Income' else 'trans-expense'}">
-                    <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
-                    <div style="font-weight:bold;">{'+' if row['Type'] == 'Income' else '-'}{row['Amount']:,.0f}</div>
-                </div>""", unsafe_allow_html=True)
-        with col_actions:
+        col1, col2 = st.columns([0.75, 0.25])
+        col1.markdown(f"""
+            <div class="trans-card {'trans-income' if row['Type'] == 'Income' else 'trans-expense'}">
+                <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
+                <div style="font-weight:bold;">{'+' if row['Type'] == 'Income' else '-'}{row['Amount']:,.0f}</div>
+            </div>""", unsafe_allow_html=True)
+        with col2:
             c1, c2 = st.columns(2)
             if c1.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
             if c2.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx) + 2); st.rerun()
 
-# --- 9. Floating Action Menu (All Buttons Restored) ---
+# --- 9. Floating Menu ---
 st.markdown(f"""
     <div class="fab-wrapper">
         <div class="fab-list">
