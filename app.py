@@ -7,15 +7,20 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
 
-# --- 2. සරල CSS (Alignment එකට විතරයි) ---
+# --- 2. CSS (බටන් දෙක ලං කරන්න සහ UI එක පිරිසිදු කරන්න) ---
 st.markdown("""
     <style>
+    /* බටන් වල සයිස් එක පාලනය කිරීම */
     div.stButton > button {
         width: 100% !important;
-        height: 35px !important;
+        height: 32px !important;
         padding: 0 !important;
+        font-size: 16px !important;
+        border-radius: 6px !important;
     }
-    .reportview-container .main .block-container { padding-top: 2rem; }
+    /* පේළි අතර ඉඩ අඩු කිරීම */
+    .stVerticalBlock { gap: 0.5rem !important; }
+    hr { margin: 0.5rem 0 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -46,7 +51,7 @@ edit_idx = query.get("edit")
 if not form_type and not edit_idx:
     st.title("💸 Finance Tracker")
     
-    # Action Buttons
+    # Action Buttons (Uda tiana tika)
     col1, col2, col3, col4 = st.columns(4)
     if col1.button("➕ Income"): st.query_params.update(form="Income"); st.rerun()
     if col2.button("➖ Expense"): st.query_params.update(form="Expense"); st.rerun()
@@ -55,32 +60,37 @@ if not form_type and not edit_idx:
 
     st.write("---")
     
-    # 🔥 Table Header
-    h1, h2, h3, h4 = st.columns([0.6, 0.2, 0.1, 0.1])
+    # 🔥 Table Header (Ratios: 65%, 20%, 15%)
+    h1, h2, h3 = st.columns([0.65, 0.20, 0.15])
     h1.write("**Item / Category**")
     h2.write("**Amount**")
-    h3.write("**Edit**")
-    h4.write("**Del**")
+    h3.write("**Actions**")
     st.write("---")
 
-    # 🔥 Data Rows (60%, 20%, 10%, 10% Alignment)
+    # 🔥 Data Rows
     if not df.empty:
         for idx in df.index[-10:][::-1]:
             row = df.loc[idx]
             color = "green" if row['Type'] == 'Income' else "red"
             
-            r1, r2, r3, r4 = st.columns([0.6, 0.2, 0.1, 0.1])
+            # පේළිය බෙදීම
+            r1, r2, r3 = st.columns([0.65, 0.20, 0.15])
             
             with r1:
                 st.write(f"**{row['Category']}** \n*{row['Date']}*")
+            
             with r2:
-                st.markdown(f"<h4 style='color:{color}; margin:0;'>LKR {row['Amount']:,.0f}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<h4 style='color:{color}; margin:0;'>{row['Amount']:,.0f}</h4>", unsafe_allow_html=True)
+            
             with r3:
-                if st.button("✏️", key=f"ed_{idx}"):
-                    st.query_params.update(edit=idx); st.rerun()
-            with r4:
-                if st.button("🗑️", key=f"dl_{idx}"):
-                    worksheet.delete_rows(int(idx)+2); st.rerun()
+                # බටන් දෙක තවත් ලං කිරීමට මෙතන තව Columns දෙකක් හැදුවා
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    if st.button("✏️", key=f"ed_{idx}"):
+                        st.query_params.update(edit=idx); st.rerun()
+                with btn_col2:
+                    if st.button("🗑️", key=f"dl_{idx}"):
+                        worksheet.delete_rows(int(idx)+2); st.rerun()
             st.write("---")
 
 # --- 6. MANAGE CATEGORIES ---
