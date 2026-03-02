@@ -7,57 +7,40 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- ULTIMATE CSS FIX (Manual HTML Grid) ---
+# --- CSS (Design & Layout) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
-    
     .header-bar {
         background-color: #0081C9; padding: 15px; color: white;
         text-align: center; font-size: 20px; font-weight: bold;
         margin: -60px -20px 20px -20px;
     }
-
-    /* --- CUSTOM BUTTON GRID (HTML) --- */
     .custom-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 10px;
-        margin-bottom: 20px;
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 12px; margin-top: 10px; margin-bottom: 20px;
     }
-
     .grid-item {
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        height: 100px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        color: #333;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        cursor: pointer;
-        text-decoration: none;
+        background: white; border: 1px solid #ddd; border-radius: 12px;
+        height: 90px; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        cursor: pointer; text-decoration: none; font-size: 14px;
     }
-
-    .grid-item:active { background: #f0f8ff; transform: scale(0.98); }
-    .icon { font-size: 22px; margin-bottom: 5px; }
-
-    /* Summary Card */
+    .grid-item:active { background: #e3f2fd; }
     .summary-card {
         background: white; padding: 15px; border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;
-        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center;
     }
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
-
+    .trans-card {
+        background: white; padding: 12px; border-radius: 10px; margin-bottom: 8px;
+        display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee;
+    }
     /* Floating Button */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 99999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .fab-main { width: 55px; height: 55px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     </style>
@@ -66,48 +49,86 @@ st.markdown("""
 # --- Header ---
 st.markdown('<div class="header-bar">Income Expense ⌄</div>', unsafe_allow_html=True)
 
-# --- 1. THE ACTION BUTTONS (Hard-coded Grid) ---
-# මචං මෙතන බටන් එබුවම Form එක එන්න මම Query Params පාවිච්චි කළා
+# --- Connection to Google Sheets ---
+try:
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds_dict = {k: st.secrets["connections"]["gsheets"][k] for k in st.secrets["connections"]["gsheets"]}
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+    client = gspread.authorize(creds)
+    sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
+    worksheet = sh.worksheet("Sheet1")
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    if not df.empty:
+        df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
+except Exception as e:
+    st.error("Data Load කරන්න බැරි වුණා මචං."); st.stop()
+
+# --- 1. ACTION BUTTONS (HTML Grid) ---
 st.markdown("""
     <div class="custom-grid">
-        <a href="/?form=income" target="_self" class="grid-item"><span class="icon">⊕</span> Add Income</a>
-        <a href="/?form=expense" target="_self" class="grid-item"><span class="icon">⊖</span> Add Expense</a>
-        <a href="/?form=transfer" target="_self" class="grid-item"><span class="icon">⇄</span> Transfer</a>
-        <a href="/?form=history" target="_self" class="grid-item"><span class="icon">☰</span> Transactions</a>
+        <a href="/?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
+        <a href="/?form=Expense" target="_self" class="grid-item"><span>➖</span> Expense</a>
+        <a href="/?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
+        <a href="/?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
     </div>
 """, unsafe_allow_html=True)
 
-# Query params වලින් Form එක පාලනය කිරීම
-query_params = st.query_params
-show_form = query_params.get("form")
+# Form Handling via URL Params
+query_form = st.query_params.get("form")
 
 # --- 2. DATA ENTRY FORM ---
-if show_form in ["income", "expense", "transfer"]:
-    st.write(f"### New {show_form.capitalize()}")
+if query_form in ["Income", "Expense", "Transfer"]:
+    st.write(f"### New {query_form}")
     with st.form("entry_form", clear_on_submit=True):
         d = st.date_input("Date", date.today())
         amt = st.number_input("Amount (LKR)", value=0.0)
         note = st.text_input("Note")
         if st.form_submit_button("Save Record ✅"):
-            st.success("Saved!") # මෙතන ඔයාගේ GSheet කෝඩ් එක දාන්න පුළුවන්
+            ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
+            worksheet.append_row([ts, "General", amt, note, query_form, "", ""])
             st.query_params.clear()
             st.rerun()
 
-# --- 3. SUMMARY CARD (image_0.png style) ---
-st.markdown(f"""
-    <div class="summary-card">
-        <div style="font-size:12px; color:gray;">21-Feb-2026 -> 20-Mar-2026</div>
-        <div class="sum-grid">
-            <div><span style="color:green; font-size:11px;">Income</span><br><b style="color:green;">0</b></div>
-            <div><span style="color:red; font-size:11px;">Expense</span><br><b style="color:red;">0</b></div>
-            <div><span style="color:gray; font-size:11px;">Balance</span><br><b>0</b></div>
-        </div>
-        <div style="text-align:right; font-size:12px; color:gray; margin-top:10px;">Previous Balance <span style="color:green; font-weight:bold;">38,814.85</span></div>
-        <div class="bal-box">Balance <span>38,814.85</span></div>
-    </div>
-""", unsafe_allow_html=True)
+# --- 3. SUMMARY CALCULATIONS ---
+if not df.empty:
+    total_income = df[df['Type'] == 'Income']['Amount'].sum()
+    total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
+    current_balance = total_income - total_expense
+    prev_balance = 38814.85 # ඔයා කලින් තිබුණ balance එක
+    final_total = prev_balance + current_balance
 
-# --- 4. FLOATING ACTION MENU ---
+    st.markdown(f"""
+        <div class="summary-card">
+            <div style="font-size:12px; color:gray;">{date.today().strftime('%d-%b-%Y')}</div>
+            <div class="sum-grid">
+                <div><span style="color:green; font-size:11px;">Income</span><br><b style="color:green;">{total_income:,.0f}</b></div>
+                <div><span style="color:red; font-size:11px;">Expense</span><br><b style="color:red;">{total_expense:,.0f}</b></div>
+                <div><span style="color:gray; font-size:11px;">Balance</span><br><b>{current_balance:,.0f}</b></div>
+            </div>
+            <div style="text-align:right; font-size:12px; color:gray; margin-top:10px;">Previous Balance <span style="color:green; font-weight:bold;">{prev_balance:,.2f}</span></div>
+            <div class="bal-box">Total Balance <span>{final_total:,.2f}</span></div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# --- 4. RECENT TRANSACTIONS ---
+st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
+if not df.empty:
+    latest = df.iloc[::-1].head(10)
+    for _, row in latest.iterrows():
+        color = "#dc3545" if row['Type'] == "Expense" else "#28a745"
+        st.markdown(f"""
+            <div class="trans-card">
+                <div>
+                    <div style="font-size:11px; color:gray;">{row['Date']}</div>
+                    <div style="font-weight:bold; font-size:14px;">{row['Category']}</div>
+                    <div style="background:#eee; display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; color:#555;">BANK</div>
+                </div>
+                <div style="color:{color}; font-weight:bold; font-size:16px;">{row['Amount']:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+# --- 5. FLOATING MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
