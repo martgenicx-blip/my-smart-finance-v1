@@ -20,7 +20,6 @@ st.markdown("""
         margin: -60px -20px 25px -20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* Summary Card */
     .main-summary { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .stat-box { padding: 15px; border-radius: 15px; text-align: center; }
@@ -31,7 +30,6 @@ st.markdown("""
     .stat-value { font-size: 18px; font-weight: 700; }
     .balance-val { color: #0081C9; font-size: 22px; }
 
-    /* Action Grid */
     .custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
     .grid-item {
         background: white; border: 1px solid #eee; border-radius: 15px; height: 85px; 
@@ -40,7 +38,6 @@ st.markdown("""
         text-decoration: none !important; transition: 0.2s;
     }
 
-    /* Transaction Cards */
     .trans-card { 
         background: white; padding: 15px; border-radius: 15px; 
         display: flex; justify-content: space-between; align-items: center; 
@@ -49,14 +46,6 @@ st.markdown("""
     .trans-income { border-left-color: #28a745; }
     .trans-expense { border-left-color: #dc3545; }
 
-    /* 🎯 Inline Buttons CSS */
-    .btn-container {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: -10px;
-        margin-bottom: 20px;
-    }
     div.stButton > button {
         width: 100% !important;
         border-radius: 10px !important;
@@ -64,11 +53,7 @@ st.markdown("""
     }
 
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { 
-        width: 60px; height: 60px; background: #0081C9; border-radius: 50%; 
-        display: flex; justify-content: center; align-items: center; color: white; 
-        font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer;
-    }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
@@ -86,7 +71,6 @@ try:
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
     cat_sheet = sh.worksheet("Categories")
-
     categories = sorted(list(set([row['CategoryName'] for row in cat_sheet.get_all_records() if row['CategoryName']])))
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
@@ -95,58 +79,47 @@ try:
 except:
     st.error("Connection Failed!"); st.stop()
 
-# --- 4. Header ---
+# --- 4. Header & Routing ---
 st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
-
-# --- 5. Query Params ---
 query = st.query_params
 form_type = query.get("form")
 edit_idx = query.get("edit")
 
-# --- 6. Summary & Action Grid ---
+# --- 5. Summary & Main Menu ---
 if not form_type and not edit_idx and not df.empty:
-    t_inc = df[df['Type'] == 'Income']['Amount'].sum()
-    t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
-    bal = t_inc - t_exp
-    final_bal = 38814.85 + bal
+    t_inc, t_exp = df[df['Type'] == 'Income']['Amount'].sum(), df[df['Type'] == 'Expense']['Amount'].sum()
+    bal = 38814.85 + (t_inc - t_exp)
+    st.markdown(f'<div class="main-summary"><div class="summary-grid"><div class="stat-box income-box"><div class="stat-label">Income</div><div style="color:#2e7d32; font-weight:700;">LKR {t_inc:,.0f}</div></div><div class="stat-box expense-box"><div class="stat-label">Expense</div><div style="color:#c62828; font-weight:700;">LKR {t_exp:,.0f}</div></div></div><div class="balance-container"><div><div class="stat-label">Total Balance</div><div class="balance-val">LKR {bal:,.2f}</div></div></div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="custom-grid"><a href="./?form=Income" target="_self" class="grid-item"><span>💰</span> Income</a><a href="./?form=Expense" target="_self" class="grid-item"><span>💸</span> Expense</a><a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a><a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a></div>', unsafe_allow_html=True)
 
-    st.markdown(f"""
-        <div class="main-summary">
-            <div class="summary-grid">
-                <div class="stat-box income-box"><div class="stat-label">Income</div><div class="stat-value" style="color:#2e7d32;">LKR {t_inc:,.0f}</div></div>
-                <div class="stat-box expense-box"><div class="stat-label">Expense</div><div class="stat-value" style="color:#c62828;">LKR {t_exp:,.0f}</div></div>
-            </div>
-            <div class="balance-container">
-                <div><div class="stat-label">Total Balance</div><div class="stat-value balance-val">LKR {final_bal:,.2f}</div></div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+# --- 6. HISTORY SECTION (Fixed) ---
+if form_type == "History":
+    st.subheader("📜 Transaction History")
+    if not df.empty:
+        # Displaying data in a nice table
+        st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+    else:
+        st.info("No transactions found.")
+    if st.button("⬅️ Back"):
+        st.query_params.clear(); st.rerun()
 
-    st.markdown("""
-        <div class="custom-grid">
-            <a href="./?form=Income" target="_self" class="grid-item"><span>💰</span> Income</a>
-            <a href="./?form=Expense" target="_self" class="grid-item"><span>💸</span> Expense</a>
-            <a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
-            <a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
-        </div>
-    """, unsafe_allow_html=True)
-
-# --- 7. Forms & Routing ---
-if form_type == "ManageCats":
+# --- 7. MANAGE CATEGORIES ---
+elif form_type == "ManageCats":
     st.subheader("⚙️ Manage Categories")
     new_c = st.text_input("New Category")
     if st.button("➕ Add"):
         if new_c: cat_sheet.append_row([new_c]); st.rerun()
     for c in categories:
-        col1, col2 = st.columns([0.8, 0.2])
-        col1.write(f"• {c}")
-        if col2.button("➖", key=f"d_{c}"):
+        c1, c2 = st.columns([0.8, 0.2]); c1.write(f"• {c}")
+        if c2.button("➖", key=f"d_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
+    if st.button("⬅️ Back"):
+        st.query_params.clear(); st.rerun()
 
+# --- 8. INCOME/EXPENSE FORMS ---
 elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
-    curr_type = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
-    scats = [c for c in categories if (c in ["Salary", "House Rental"] if curr_type=="Income" else c not in ["Salary", "House Rental"])]
-    st.markdown(f"### 📝 {curr_type}")
+    curr_t = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
+    scats = [c for c in categories if (c in ["Salary", "House Rental"] if curr_t=="Income" else c not in ["Salary", "House Rental"])]
     with st.form("entry_form"):
         f_date = st.date_input("Date", date.today())
         f_cat = st.selectbox("Category", scats)
@@ -154,45 +127,23 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
         f_desc = st.text_input("Description")
         if st.form_submit_button("Save ✅"):
             ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            row_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
-            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [row_data])
-            else: worksheet.append_row(row_data)
+            r = [ts, f_cat, f_amt, f_desc, curr_t, "Cash", "Bank", ""]
+            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r])
+            else: worksheet.append_row(r)
             st.query_params.clear(); st.rerun()
+    if st.button("Cancel"):
+        st.query_params.clear(); st.rerun()
 
-# --- 8. Recent Activity (FIXED INLINE BUTTONS) ---
+# --- 9. RECENT ACTIVITY (Home Page Only) ---
 if not form_type and not edit_idx and not df.empty:
     st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
         is_inc = row['Type'] == 'Income'
-        st.markdown(f"""
-            <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
-                <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
-                <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'};">
-                    {'+' if is_inc else '-'}{row['Amount']:,.0f}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # 🎯 බටන් දෙක එකම පේළියට (Inline)
+        st.markdown(f'<div class="trans-card {"trans-income" if is_inc else "trans-expense"}"><div><b>{row["Category"]}</b><br><small>{row["Date"]}</small></div><div style="font-weight:700; color:{"#28a745" if is_inc else "#dc3545"};">{"+" if is_inc else "-"}{row["Amount"]:,.0f}</div></div>', unsafe_allow_html=True)
         c1, c2, c3 = st.columns([0.6, 0.2, 0.2])
-        with c2:
-            if st.button("✏️", key=f"edit_{idx}"):
-                st.query_params.update(edit=idx); st.rerun()
-        with c3:
-            if st.button("🗑️", key=f"del_{idx}"):
-                worksheet.delete_rows(int(idx)+2); st.rerun()
+        if c2.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
+        if c3.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
 
-# --- 9. FAB Menu ---
-st.markdown("""
-    <div class="fab-wrapper">
-        <div class="fab-list">
-            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a>
-            <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a>
-            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a>
-            <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a>
-            <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a>
-        </div>
-        <div class="fab-main">+</div>
-    </div>
-""", unsafe_allow_html=True)
+# --- 10. FAB Menu ---
+st.markdown('<div class="fab-wrapper"><div class="fab-list"><a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a><a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a><a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a><a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a><a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a></div><div class="fab-main">+</div></div>', unsafe_allow_html=True)
