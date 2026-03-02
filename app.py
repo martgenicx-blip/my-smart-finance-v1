@@ -7,63 +7,84 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 ULTIMATE PREMIUM UI CSS ---
+# --- 2. 🎨 THE ULTIMATE MODERN UI CSS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8f9fc; }
 
+    /* Header Section */
     .header-wrapper {
         background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
-        padding: 40px 15px; color: white; border-radius: 0 0 35px 35px;
-        text-align: center; margin: -65px -20px 25px -20px;
+        padding: 45px 15px; color: white; border-radius: 0 0 40px 40px;
+        text-align: center; margin: -65px -20px 30px -20px;
+        box-shadow: 0 15px 35px rgba(0,122,255,0.2);
     }
 
-    .premium-card {
-        background: white; border-radius: 25px; padding: 25px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.05); margin-bottom: 25px;
+    /* 🔥 MODERN NET BALANCE CARD (RE-DESIGNED) */
+    .net-balance-card {
+        background: white; border-radius: 28px; padding: 30px;
+        text-align: center; margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+        border: 1px solid rgba(255,255,255,0.7);
+        position: relative; overflow: hidden;
     }
+    .net-balance-card::before {
+        content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+        background: radial-gradient(circle, rgba(0,122,255,0.03) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .bal-label { color: #8E8E93; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+    .bal-amount { color: #1c1c1e; font-size: 40px; font-weight: 800; letter-spacing: -1.5px; }
 
-    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+    /* MODERN GRID BUTTONS WITH HOVER */
+    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 35px; }
     .grid-btn {
-        background: #ffffff; border-radius: 20px; padding: 22px 15px; text-align: center;
+        background: #ffffff; border-radius: 22px; padding: 25px 15px; text-align: center;
         text-decoration: none !important; color: #1c1c1e !important; font-weight: 700; font-size: 16px;
         border: 2px solid #f1f3f5; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
     .grid-btn:hover {
         transform: translateY(-8px); border-color: #007AFF;
-        box-shadow: 0 12px 24px rgba(0,122,255,0.15);
+        box-shadow: 0 15px 30px rgba(0,122,255,0.12);
+        background: #fff;
     }
 
-    /* CLEAN ACTIVITY CARDS (NO BUTTONS) */
+    /* CLEAN RECENT ACTIVITY (MODERN LOOK) */
     .activity-container {
-        background: white; border-radius: 18px; margin-bottom: 12px;
-        padding: 18px 20px 18px 28px; position: relative;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f8f9fa;
+        background: white; border-radius: 20px; margin-bottom: 12px;
+        padding: 18px 25px; position: relative;
         display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #f8f9fa;
+        transition: 0.3s ease;
     }
-    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: 6px 0 0 6px; }
+    .activity-container:hover { transform: scale(1.01); border-color: #e2e8f0; }
+    .v-line { position: absolute; left: 0; top: 15px; bottom: 15px; width: 6px; border-radius: 0 10px 10px 0; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* HISTORY TABLE EDIT/DELETE STYLING */
-    .history-table-header { font-weight: 700; color: #8e8e93; border-bottom: 1px solid #f1f3f5; padding-bottom: 10px; margin-bottom: 10px; }
-    
-    [data-testid="column"] { display: flex; align-items: center; }
-
-    /* FAB */
+    /* 🔥 FLOATING ACTION BUTTON WITH MOUSE OVER EFFECT */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; }
     .fab-main { 
-        width: 60px; height: 60px; background: #007AFF;
-        border-radius: 20px; display: flex; justify-content: center; align-items: center; 
-        color: white; font-size: 32px; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
+        width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+        border-radius: 22px; display: flex; justify-content: center; align-items: center; 
+        color: white; font-size: 35px; box-shadow: 0 12px 25px rgba(0,122,255,0.35);
+        cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
+    .fab-wrapper:hover .fab-main { transform: scale(1.1) rotate(90deg); }
+    
+    .fab-list { 
+        display: none; flex-direction: column; gap: 12px; align-items: flex-end; margin-bottom: 15px;
+        animation: fadeIn 0.3s ease forwards;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
-    .fab-label { background: #1c1c1e; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: white; }
-    .fab-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; }
+    .fab-item { display: flex; align-items: center; gap: 12px; text-decoration: none !important; transition: 0.2s; }
+    .fab-item:hover { transform: translateX(-5px); }
+    .fab-label { background: #1c1c1e; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .fab-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -101,12 +122,24 @@ if not form_type and not edit_idx:
     if not df.empty:
         t_inc, t_exp = df[df['Type'] == 'Income']['Amount'].sum(), df[df['Type'] == 'Expense']['Amount'].sum()
         curr_bal = opening_bal + t_inc - t_exp
-        st.markdown(f'<div class="premium-card"><div style="color:#8e8e93; font-weight:700; font-size:12px;">NET BALANCE</div><div style="font-size:36px; font-weight:800; color:#1c1c1e;">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="net-balance-card">
+                <div class="bal-label">Available Net Balance</div>
+                <div class="bal-amount">LKR {curr_bal:,.2f}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown('<div class="grid-container"><a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a><a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a><a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a><a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a></div>', unsafe_allow_html=True)
+    st.markdown("""
+        <div class="grid-container">
+            <a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a>
+            <a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a>
+            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a>
+            <a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a>
+        </div>
+    """, unsafe_allow_html=True)
 
     if not df.empty:
-        st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 style="font-size:18px; font-weight:800; margin-bottom:20px; color:#1c1c1e;">Recent Transactions</h3>', unsafe_allow_html=True)
         recent_items = df.tail(10).iloc[::-1]
         for _, row in recent_items.iterrows():
             is_inc = row['Type'] == 'Income'
@@ -116,56 +149,52 @@ if not form_type and not edit_idx:
                 <div class="activity-container">
                     <div class="v-line {v_color}"></div>
                     <div>
-                        <div style="font-weight:700; font-size:16px;">{row['Category']}</div>
-                        <div style="color:#8e8e93; font-size:12px;">{row['Date']}</div>
+                        <div style="font-weight:700; font-size:16px; color:#1c1c1e;">{row['Category']}</div>
+                        <div style="color:#8e8e93; font-size:12px; font-weight:500;">{row['Date']}</div>
                     </div>
                     <div style="font-weight:800; font-size:18px; color:{t_color};">{sym} {row['Amount']:,.0f}</div>
                 </div>
             """, unsafe_allow_html=True)
 
-# --- 6. HISTORY PAGE (MANAGEMENT SECTION) ---
+# --- 6. HISTORY PAGE ---
 elif form_type == "History":
-    st.markdown('<div class="premium-card"><h3>📜 Transaction History</h3><p>Manage your records below</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="net-balance-card"><h3>📜 History & Management</h3></div>', unsafe_allow_html=True)
     if not df.empty:
-        history_df = df.iloc[::-1] # Show latest first
+        history_df = df.iloc[::-1]
         for idx_row, row in history_df.iterrows():
             is_inc = row['Type'] == 'Income'
             t_color = "#34C759" if is_inc else "#FF3B30"
-            
             with st.container():
                 c1, c2, c3 = st.columns([0.5, 0.3, 0.2])
-                with c1: st.markdown(f"**{row['Category']}** \n<small>{row['Date']}</small>", unsafe_allow_html=True)
+                with c1: st.markdown(f"**{row['Category']}**<br><small>{row['Date']}</small>", unsafe_allow_html=True)
                 with c2: st.markdown(f"<span style='color:{t_color}; font-weight:700;'>{row['Amount']:,.0f}</span>", unsafe_allow_html=True)
                 with c3:
                     sc1, sc2 = st.columns(2)
                     with sc1:
-                        if st.button("📝", key=f"hist_e_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
+                        if st.button("📝", key=f"he_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
                     with sc2:
-                        if st.button("🗑️", key=f"hist_d_{idx_row}"):
-                            worksheet.delete_rows(int(idx_row)+2)
-                            st.cache_data.clear(); st.rerun()
+                        if st.button("🗑️", key=f"hd_{idx_row}"):
+                            worksheet.delete_rows(int(idx_row)+2); st.cache_data.clear(); st.rerun()
                 st.divider()
-    if st.button("Back Home 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
+    if st.button("Back 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 7. FORMS (INCOME/EXPENSE/EDIT) ---
+# --- 7. FORMS ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
     t = form_type if not is_edit else row_data['Type']
-    
-    st.markdown(f'<div class="premium-card"><h3>📝 {t}</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="net-balance-card"><h3>📝 {t}</h3></div>', unsafe_allow_html=True)
     f_date = st.date_input("Date", date.today() if not is_edit else date.fromisoformat(str(row_data['Date'])))
     f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
     f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
-    
-    if st.button("Confirm & Save ✅", use_container_width=True):
+    if st.button("Save ✅", use_container_width=True):
         new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
         if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
         else: worksheet.append_row(new_row)
         st.cache_data.clear(); st.query_params.clear(); st.rerun()
-    if st.button("Cancel ❌", use_container_width=True): st.query_params.clear(); st.rerun()
+    if st.button("Cancel", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 8. FAB ---
+# --- 8. RESTORED & ANIMATED FAB ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
