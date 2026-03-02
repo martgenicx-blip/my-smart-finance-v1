@@ -56,7 +56,6 @@ st.markdown("""
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; }
     .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
     
-    /* Category specific styles */
     .cat-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 5px 15px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #eee; }
     </style>
     """, unsafe_allow_html=True)
@@ -72,20 +71,10 @@ try:
     client = gspread.authorize(creds)
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
-    
-    try:
-        cat_sheet = sh.worksheet("Categories")
-    except:
-        cat_sheet = sh.add_worksheet(title="Categories", rows="100", cols="2")
-        cat_sheet.append_row(["CategoryName"])
+    cat_sheet = sh.worksheet("Categories")
 
-    # Double නොවෙන්න Unique ලැයිස්තුවක් හදාගන්නවා
     all_cat_data = cat_sheet.get_all_records()
     categories = sorted(list(set([row['CategoryName'] for row in all_cat_data if row['CategoryName']])))
-    
-    # Defaults (නැතිනම් පමණක් එක් වේ)
-    income_defaults = ["Salary", "House Rental"]
-    expense_defaults = ["Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
     
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
@@ -94,11 +83,12 @@ try:
 except Exception as e:
     st.error(f"Connection Error: {str(e)}"); st.stop()
 
-# --- 5. Action Buttons ---
+# --- 5. Action Grid (All Buttons Included) ---
 st.markdown(f"""
     <div class="custom-grid">
         <a href="./?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
         <a href="./?form=Expense" target="_self" class="grid-item"><span>➖</span> Expense</a>
+        <a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
         <a href="./?form=ManageCats" target="_self" class="grid-item"><span>⚙️</span> Categories</a>
         <a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
     </div>
@@ -108,35 +98,27 @@ query_params = st.query_params
 query_form = query_params.get("form")
 edit_id = query_params.get("edit")
 
-# --- 6. CATEGORY MANAGEMENT (NEW FEATURE) ---
+# --- 6. Manage Categories ---
 if query_form == "ManageCats":
     st.subheader("⚙️ Manage Categories")
-    
-    # Add New Category Box
-    with st.container():
-        new_cat_name = st.text_input("Add New Category")
-        if st.button("➕ Add Category", type="primary"):
-            if new_cat_name and new_cat_name not in categories:
-                cat_sheet.append_row([new_cat_name])
-                st.success(f"{new_cat_name} Added!")
-                st.rerun()
-            else:
-                st.warning("Category already exists or empty!")
+    new_cat_name = st.text_input("Add New Category")
+    if st.button("➕ Add Category", type="primary"):
+        if new_cat_name and new_cat_name not in categories:
+            cat_sheet.append_row([new_cat_name])
+            st.success(f"{new_cat_name} Added!"); st.rerun()
 
     st.write("---")
-    st.write("Current Categories (Click ➖ to remove)")
     for c in categories:
         col_name, col_btn = st.columns([0.85, 0.15])
         col_name.markdown(f'<div class="cat-row">{c}</div>', unsafe_allow_html=True)
-        if col_btn.button("➖", key=f"del_cat_{c}", help="Delete Category"):
-            # Sheet එකේ row එක හොයාගෙන මකනවා
+        if col_btn.button("➖", key=f"del_cat_{c}"):
             try:
                 cell = cat_sheet.find(c)
                 cat_sheet.delete_rows(cell.row)
                 st.rerun()
             except: pass
 
-# --- 7. DATA ENTRY / EDIT FORM ---
+# --- 7. Data Entry / Edit Form ---
 elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
     current_type = query_form
     if edit_id: current_type = df.loc[int(edit_id)]['Type']
@@ -146,7 +128,7 @@ elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
     else:
         show_cats = [c for c in categories if c not in ["Salary", "House Rental"]]
 
-    st.markdown(f"### 📝 {'Edit Record' if edit_id else 'New ' + query_form}")
+    st.markdown(f"### 📝 {'Edit Record' if edit_id else 'New ' + current_type}")
     
     default_vals = {"Date": date.today(), "Category": show_cats[0] if show_cats else "General", "Amount": 0.0, "Description": "", "Note": "", "Type": current_type}
     if edit_id:
@@ -162,12 +144,12 @@ elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
         
         if st.form_submit_button("Save ✅"):
             ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            new_row = [ts, f_cat, f_amount, f_desc, default_vals["Type"], "Cash", "Bank", f_note]
+            new_row = [ts, f_cat, f_amount, f_desc, current_type, "Cash", "Bank", f_note]
             if edit_id: worksheet.update(f'A{int(edit_id)+2}:H{int(edit_id)+2}', [new_row])
             else: worksheet.append_row(new_row)
             st.query_params.clear(); st.rerun()
 
-# --- 8. Dashboard & Recent Transactions ( settings unchanged ) ---
+# --- 8. Dashboard & Recent ---
 if not df.empty:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -200,11 +182,13 @@ if not df.empty:
             if c1.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
             if c2.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx) + 2); st.rerun()
 
-# --- 9. Floating Menu ---
+# --- 9. Floating Action Menu (All Buttons Restored) ---
 st.markdown(f"""
     <div class="fab-wrapper">
         <div class="fab-list">
+            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a>
             <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a>
+            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a>
             <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a>
             <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a>
         </div>
