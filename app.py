@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles ---
+# --- 2. CSS Styles (High Quality UI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -29,10 +29,13 @@ st.markdown("""
         cursor: pointer; text-decoration: none !important;
         font-size: 14px;
     }
-    .cat-row { 
-        display: flex; justify-content: space-between; align-items: center; 
-        background: white; padding: 8px 15px; border-radius: 8px; 
-        margin-bottom: 8px; border: 1px solid #eee; font-weight: 500;
+    /* Form Quality Enhancement */
+    [data-testid="stForm"] {
+        background-color: #ffffff !important;
+        padding: 25px !important;
+        border-radius: 15px !important;
+        border: 1px solid #e0e0e0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
     }
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 10px; 
@@ -50,6 +53,12 @@ st.markdown("""
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; }
     .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
+    
+    .cat-row { 
+        display: flex; justify-content: space-between; align-items: center; 
+        background: white; padding: 10px 15px; border-radius: 8px; 
+        margin-bottom: 8px; border: 1px solid #eee; font-weight: 500;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -66,11 +75,9 @@ try:
     worksheet = sh.worksheet("Sheet1")
     cat_sheet = sh.worksheet("Categories")
 
-    # Fetch Categories
     all_cat_data = cat_sheet.get_all_records()
     categories = sorted(list(set([row['CategoryName'] for row in all_cat_data if row['CategoryName']])))
     
-    # Fetch Transactions
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     if not df.empty:
@@ -93,40 +100,33 @@ query_params = st.query_params
 query_form = query_params.get("form")
 edit_id = query_params.get("edit")
 
-# --- 6. Manage Categories (FIXED BUTTON) ---
+# --- 6. Manage Categories ---
 if query_form == "ManageCats":
     st.subheader("⚙️ Manage Categories")
-    
-    # මෙතන Form එකක් නැතුව කෙලින්ම Input එකක් පාවිච්චි කළා
-    new_cat_input = st.text_input("New Category Name", key="new_cat_box")
-    if st.button("➕ Add Now", type="primary"):
+    new_cat_input = st.text_input("New Category Name")
+    if st.button("➕ Add Category", type="primary"):
         if new_cat_input and new_cat_input not in categories:
             cat_sheet.append_row([new_cat_input])
-            st.success("Category Added!")
-            st.rerun()
-        elif not new_cat_input:
-            st.error("Please enter a name!")
-        else:
-            st.warning("Already exists!")
+            st.success("Category Added!"); st.rerun()
 
     st.write("---")
-    st.write("Click ➖ to remove a category")
     for c in categories:
         col_c, col_b = st.columns([0.85, 0.15])
         col_c.markdown(f'<div class="cat-row">{c}</div>', unsafe_allow_html=True)
         if col_b.button("➖", key=f"del_{c}"):
             try:
                 cell = cat_sheet.find(c)
-                cat_sheet.delete_rows(cell.row)
-                st.rerun()
+                cat_sheet.delete_rows(cell.row); st.rerun()
             except: pass
 
-# --- 7. Data Entry / Edit ---
+# --- 7. QUALITY DATA ENTRY / EDIT FORM ---
 elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
-    # (කලින් කෝඩ් එකමයි - Filtering සහ Forms හරියට වැඩ)
+    # 🎯 Identify Record Type
     current_type = query_form
-    if edit_id: current_type = df.loc[int(edit_id)]['Type']
+    if edit_id:
+        current_type = df.loc[int(edit_id)]['Type']
     
+    # 🎯 Filter Categories
     if current_type == "Income":
         show_cats = [c for c in categories if c in ["Salary", "House Rental"]]
     else:
@@ -134,24 +134,50 @@ elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
 
     st.markdown(f"### 📝 {'Edit Record' if edit_id else 'New ' + current_type}")
     
-    with st.form("entry_form"):
-        # Default values logic
-        row_data = df.loc[int(edit_id)] if edit_id else None
-        f_date = st.date_input("Date", date.today())
-        f_cat = st.selectbox("Category", show_cats)
-        f_amount = st.number_input("Amount (LKR)", min_value=0.0)
-        f_desc = st.text_input("Description")
-        f_note = st.text_area("Note")
+    # 🎯 Prepare Default Values for Edit
+    def_date = date.today()
+    def_cat = show_cats[0] if show_cats else "General"
+    def_amt = 0.0
+    def_desc = ""
+    def_note = ""
+
+    if edit_id:
+        row = df.loc[int(edit_id)]
+        try: def_date = datetime.strptime(row['Date'].split(' ')[0], '%Y-%m-%d').date()
+        except: pass
+        def_cat = row['Category']
+        def_amt = float(row['Amount'])
+        def_desc = row.get('Description', '')
+        def_note = row.get('Note', '')
+
+    # 🎯 High Quality Form
+    with st.form("quality_form", clear_on_submit=True):
+        f_date = st.date_input("Date", def_date)
+        f_cat = st.selectbox("Category", show_cats, index=show_cats.index(def_cat) if def_cat in show_cats else 0)
+        f_amount = st.number_input("Amount (LKR)", value=def_amt, min_value=0.0, step=10.0)
+        f_desc = st.text_input("Description (Optional)", value=def_desc)
+        f_note = st.text_area("Additional Note", value=def_note)
         
-        if st.form_submit_button("Save ✅"):
-            ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            new_row = [ts, f_cat, f_amount, f_desc, current_type, "Cash", "Bank", f_note]
-            if edit_id: worksheet.update(f'A{int(edit_id)+2}:H{int(edit_id)+2}', [new_row])
-            else: worksheet.append_row(new_row)
-            st.query_params.clear(); st.rerun()
+        btn_label = "Update Record ✅" if edit_id else f"Save {current_type} ✅"
+        if st.form_submit_button(btn_label):
+            if f_amount > 0:
+                ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
+                new_data = [ts, f_cat, f_amount, f_desc, current_type, "Cash", "Bank", f_note]
+                
+                if edit_id:
+                    worksheet.update(f'A{int(edit_id)+2}:H{int(edit_id)+2}', [new_data])
+                    st.success("Updated!")
+                else:
+                    worksheet.append_row(new_data)
+                    st.success("Saved!")
+                
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.warning("Please enter an amount!")
 
 # --- 8. Dashboard ---
-if not df.empty and not query_form:
+if not df.empty and not query_form and not edit_id:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
     current_balance = total_income - total_expense
@@ -171,7 +197,7 @@ if not df.empty and not query_form:
     st.write("<b>Recent Transactions</b>")
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
-        col1, col2 = st.columns([0.75, 0.25])
+        col1, col2 = st.columns([0.78, 0.22])
         col1.markdown(f"""
             <div class="trans-card {'trans-income' if row['Type'] == 'Income' else 'trans-expense'}">
                 <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
