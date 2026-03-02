@@ -7,13 +7,13 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CUSTOM CSS (Image එකේ තියෙන Floating Menu එක හදන්න) ---
+# --- CSS (හරියටම image_2.png එකේ විදිහටම Floating Menu එක) ---
 st.markdown("""
     <style>
-    /* Main Background */
+    /* Main App Background */
     .stApp { background-color: #f8f9fa; }
 
-    /* Top Blue Header */
+    /* Blue Header Bar */
     .header-bar {
         background-color: #0081C9;
         padding: 15px;
@@ -24,7 +24,7 @@ st.markdown("""
         margin: -60px -20px 20px -20px;
     }
 
-    /* Summary Table Styling */
+    /* Summary Table Fix */
     .summary-table {
         width: 100%;
         background: white;
@@ -36,79 +36,88 @@ st.markdown("""
     .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
     .label { color: gray; font-size: 11px; }
 
-    /* --- Floating Action Button & Menu (Image_2 Style) --- */
-    .fab-container {
+    /* --- FAB MENU LOGIC (CSS ONLY) --- */
+    .fab-wrapper {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 10px;
+        bottom: 30px;
+        right: 30px;
+        z-index: 9999;
     }
 
-    /* The Main Blue Button */
     .fab-main {
-        background-color: #0081C9;
-        color: white;
-        border: none;
-        width: 55px;
-        height: 55px;
+        width: 60px;
+        height: 60px;
+        background: #0081C9;
         border-radius: 50%;
-        font-size: 30px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        cursor: pointer;
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 35px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        cursor: pointer;
+        transition: transform 0.3s;
     }
 
-    /* The Floating Menu Items (Labels + Icons) */
-    .fab-item-container {
+    /* Menu Items Container */
+    .fab-list {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        display: none; /* Default Hidden */
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    /* Show menu when wrapper is hovered/clicked */
+    .fab-wrapper:hover .fab-list {
+        display: flex;
+    }
+    .fab-wrapper:hover .fab-main {
+        transform: rotate(45deg); /* Plus becomes X */
+        background: #555;
+    }
+
+    .fab-item {
         display: flex;
         align-items: center;
         gap: 10px;
+        text-decoration: none;
     }
 
-    /* Small Floating Icon Buttons */
-    .fab-item-icon {
+    .fab-label {
+        color: white;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .fab-icon {
         width: 45px;
         height: 45px;
         border-radius: 50%;
-        border: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         color: white;
         font-size: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        cursor: pointer;
     }
 
-    /* Item Labels (Background colors match Image_2) */
-    .fab-label {
-        padding: 5px 10px;
-        border-radius: 5px;
-        color: white;
-        font-size: 13px;
-        font-weight: bold;
-    }
-
-    /* Color definitions from image_2.png */
+    /* Colors from Image_2 */
     .bg-income { background-color: #28a745; }
     .bg-expense { background-color: #dc3545; }
     .bg-transfer { background-color: #fd7e14; }
     .bg-trans { background-color: #007bff; }
+
     </style>
     """, unsafe_allow_html=True)
 
 # --- Header ---
 st.markdown('<div class="header-bar">Income Expense ⌄</div>', unsafe_allow_html=True)
-
-# Session State for Menu and Forms
-if "menu_open" not in st.session_state: st.session_state.menu_open = False
-if "show_form" not in st.session_state: st.session_state.show_form = None
 
 # --- Connection ---
 try:
@@ -124,7 +133,7 @@ try:
         df['Date_Only'] = pd.to_datetime(df['Date'], format='mixed').dt.date
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except:
-    st.error("Connection Lost"); st.stop()
+    st.error("Sheet Connection Error"); st.stop()
 
 # --- Summary Table ---
 if not df.empty:
@@ -132,38 +141,17 @@ if not df.empty:
     te = df[df['Type'] == 'Expense']['Amount'].sum()
     bal = ti - te
     st.markdown(f"""
-        <div style="text-align:center; font-size:12px; color:gray; margin-top:10px;">21-Feb-2026 -> 20-Mar-2026</div>
+        <div style="text-align:center; font-size:12px; color:gray; margin-top:10px;">{date.today().strftime('%d-%b-%Y')}</div>
         <table class="summary-table">
             <tr>
                 <td><span class="label">Income</span><br><b style="color:green;">{ti:,.0f}</b></td>
                 <td><span class="label">Expense</span><br><b style="color:red;">{te:,.0f}</b></td>
                 <td><span class="label">Balance</span><br><b>{bal:,.0f}</b></td>
             </tr>
-            <tr>
-                <td colspan="2" style="text-align:right; color:gray;">Previous Balance</td>
-                <td style="color:green;">38,814.85</td>
-            </tr>
-            <tr style="font-weight:bold; background:#e3f2fd;">
-                <td colspan="2" style="text-align:right;">Total Balance</td>
-                <td style="color:green;">{(38814.85 + bal):,.2f}</td>
-            </tr>
+            <tr><td colspan="2" style="text-align:right; color:gray;">Previous Balance</td><td style="color:green;">38,814.85</td></tr>
+            <tr style="font-weight:bold; background:#e3f2fd;"><td colspan="2" style="text-align:right;">Total Balance</td><td style="color:green;">{(38814.85 + bal):,.2f}</td></tr>
         </table>
     """, unsafe_allow_html=True)
-
-# --- Data Entry Form ---
-if st.session_state.show_form:
-    with st.form("entry_form", clear_on_submit=True):
-        st.subheader(f"New {st.session_state.show_form}")
-        d = st.date_input("Date", date.today())
-        amt = st.number_input("Amount", value=None, placeholder="0.00")
-        note = st.text_input("Note")
-        if st.form_submit_button("Save Record"):
-            if amt:
-                ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
-                worksheet.append_row([ts, "General", amt, note, st.session_state.show_form, "", ""])
-                st.session_state.show_form = None
-                st.session_state.menu_open = False
-                st.rerun()
 
 # --- Recent Transactions List ---
 st.write("---")
@@ -179,59 +167,43 @@ if not df.empty:
                     <div style="font-weight:bold; font-size:14px;">{row['Category']}</div>
                     <div style="font-size:10px; color:#0081C9; font-weight:bold;">BANK</div>
                 </div>
-                <div style="color:{color}; font-weight:bold; font-size:16px;">
-                    {sym} {row['Amount']:,.0f}
-                </div>
+                <div style="color:{color}; font-weight:bold; font-size:16px;">{sym} {row['Amount']:,.0f}</div>
             </div>
         """, unsafe_allow_html=True)
 
-# --- Dynamic Floating Menu Logic (Image_2 Style) ---
-fab_html = '<div class="fab-container">'
+# --- CSS Floating Menu HTML ---
+st.markdown("""
+    <div class="fab-wrapper">
+        <div class="fab-list">
+            <div class="fab-item">
+                <span class="fab-label bg-trans">Transactions</span>
+                <div class="fab-icon bg-trans">☰</div>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label bg-transfer">Transfer</span>
+                <div class="fab-icon bg-transfer">⇄</div>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label bg-income">Add Income</span>
+                <div class="fab-icon bg-income">⊕</div>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label bg-expense">Add Expense</span>
+                <div class="fab-icon bg-expense">⊖</div>
+            </div>
+        </div>
+        <div class="fab-main">+</div>
+    </div>
+""", unsafe_allow_html=True)
 
-if st.session_state.menu_open:
-    # 1. Transactions Item (Blue)
-    fab_html += f'<div class="fab-item-container"><span class="fab-label bg-trans">Transactions</span><button class="fab-item-icon bg-trans" onclick="document.getElementById(\'trans_trigger\').click()">☰</button></div>'
-    # 2. Transfer Item (Orange)
-    fab_html += f'<div class="fab-item-container"><span class="fab-label bg-transfer">Transfer</span><button class="fab-item-icon bg-transfer" onclick="document.getElementById(\'transfer_trigger\').click()">⇄</button></div>'
-    # 3. Add Income Item (Green)
-    fab_html += f'<div class="fab-item-container"><span class="fab-label bg-income">Add Income</span><button class="fab-item-icon bg-income" onclick="document.getElementById(\'income_trigger\').click()">⊕</button></div>'
-    # 4. Add Expense Item (Red)
-    fab_html += f'<div class="fab-item-container"><span class="fab-label bg-expense">Add Expense</span><button class="fab-item-icon bg-expense" onclick="document.getElementById(\'expense_trigger\').click()">⊖</button></div>'
-    
-    # The Close Button (X)
-    main_btn_content = 'X'
-else:
-    # The Open Button (+)
-    main_btn_content = '+'
-
-fab_html += f'<button class="fab-main">{main_btn_content}</button></div>'
-
-# Render the FAB and Menu
-st.markdown(fab_html, unsafe_allow_html=True)
-
-# Invisible Streamlit buttons to handle clicks from the HTML menu
-col_triggers = st.columns(5)
-with col_triggers[0]: 
-    if st.button("income_trigger", key="income_trigger"): 
-        st.session_state.show_form = "Income"
-        st.rerun()
-with col_triggers[1]:
-    if st.button("expense_trigger", key="expense_trigger"):
-        st.session_state.show_form = "Expense"
-        st.rerun()
-with col_triggers[2]:
-    if st.button("transfer_trigger", key="transfer_trigger"):
-        st.session_state.show_form = "Transfer"
-        st.rerun()
-with col_triggers[3]:
-    if st.button("trans_trigger", key="trans_trigger"):
-        st.session_state.show_form = "History"
-        st.rerun()
-with col_triggers[4]:
-    # Hidden button to toggle the main menu
-    if st.button("Toggle Menu", key="main_fab_trigger"):
-        st.session_state.menu_open = not st.session_state.menu_open
-        st.rerun()
-
-# CSS to hide the invisible trigger buttons
-st.markdown("<style>#income_trigger, #expense_trigger, #transfer_trigger, #trans_trigger, #main_fab_trigger { display: none; }</style>", unsafe_allow_html=True)
+# --- Forms Section ---
+st.write("---")
+with st.expander("📝 Quick Entry Form"):
+    t_type = st.selectbox("Type", ["Income", "Expense", "Transfer"])
+    amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00")
+    note = st.text_input("Note")
+    if st.button("Save Record ✅"):
+        if amt:
+            ts = f"{date.today()} {datetime.now().strftime('%H:%M:%S')}"
+            worksheet.append_row([ts, "General", amt, note, t_type, "", ""])
+            st.success("Saved!"); st.rerun()
