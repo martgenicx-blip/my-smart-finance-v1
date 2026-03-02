@@ -7,12 +7,11 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (KEEPING EVERYTHING THE SAME) ---
+# --- CSS (FIXING UNDERLINES) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
     
-    /* Header එකේ v අකුර වගේ තිබුණ icon එක අයින් කළා */
     .header-bar {
         background-color: #0081C9; padding: 15px; color: white;
         text-align: center; font-size: 20px; font-weight: bold;
@@ -23,13 +22,21 @@ st.markdown("""
         display: grid; grid-template-columns: 1fr 1fr;
         gap: 12px; margin-top: 10px; margin-bottom: 20px;
     }
+
+    /* මෙන්න මෙතනින් තමයි Underline එක අයින් කරන්නේ */
     .grid-item {
         background: white; border: 1px solid #ddd; border-radius: 12px;
         height: 90px; display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        cursor: pointer; text-decoration: none; font-size: 14px;
+        font-weight: bold; color: #333 !important; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        cursor: pointer; 
+        text-decoration: none !important; /* Underline Removed */
+        font-size: 14px;
     }
+    
+    .grid-item:hover { text-decoration: none !important; color: #0081C9 !important; }
+
     [data-testid="stForm"] {
         background-color: #ffffff !important;
         padding: 20px !important;
@@ -37,30 +44,30 @@ st.markdown("""
         border: 1px solid #e0e0e0 !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
     }
+
     div[data-baseweb="input"] {
         border: 2px solid #d1d1d1 !important;
         border-radius: 10px !important;
         background-color: #fafafa !important;
     }
-    div[data-baseweb="input"]:focus-within {
-        border-color: #0081C9 !important;
-        background-color: white !important;
-    }
+
     .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     .trans-card { background: white; padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+
+    /* Floating Menu Underline Fix */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; } /* Underline Removed */
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Header (Icon එක අයින් කළා) ---
+# --- Header ---
 st.markdown('<div class="header-bar">Income Expense</div>', unsafe_allow_html=True)
 
 # --- Google Sheets Connection ---
