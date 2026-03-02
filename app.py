@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (Transactions පෙනුම වැඩි දියුණු කළා) ---
+# --- CSS (Transactions පෙනුම සහ Layout එක) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -39,7 +39,7 @@ st.markdown("""
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     
-    /* --- Quality Transaction Card Style --- */
+    /* Transaction Card Style */
     .trans-card { 
         background: white; 
         padding: 12px 15px; 
@@ -49,10 +49,9 @@ st.markdown("""
         justify-content: space-between; 
         align-items: center; 
         box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        border-left: 5px solid #ccc; /* Default border */
     }
-    .trans-income { border-left: 5px solid #28a745 !important; } /* Green line for Income */
-    .trans-expense { border-left: 5px solid #dc3545 !important; } /* Red line for Expense */
+    .trans-income { border-left: 5px solid #28a745 !important; }
+    .trans-expense { border-left: 5px solid #dc3545 !important; }
     
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
@@ -76,7 +75,6 @@ try:
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
     
-    # Categories Handling
     try:
         cat_sheet = sh.worksheet("Categories")
     except:
@@ -86,6 +84,7 @@ try:
 
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
+    
     if not df.empty:
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
     
@@ -119,11 +118,23 @@ if query_form in ["Income", "Expense", "Transfer"]:
         f_date = st.date_input("Select Date", date.today())
         f_cat = st.selectbox("Select Category", categories if categories else ["General"])
         f_amount = st.number_input("Enter Amount (LKR)", value=0.0, step=1.0)
-        f_note = st.text_input("Add a Note", placeholder="Write details here...")
+        f_desc = st.text_input("Description", placeholder="Short description...")
+        f_note = st.text_area("Note", placeholder="Longer details here...")
+        
+        # Accounts (Transfer එකක් නම් මේවා වැදගත්)
+        f_from = "Cash"
+        f_to = "Bank"
+        if query_form == "Transfer":
+            col_a, col_b = st.columns(2)
+            with col_a: f_from = st.text_input("From Account", value="Cash")
+            with col_b: f_to = st.text_input("To Account", value="Bank")
+
         if st.form_submit_button("Save Record ✅"):
             if f_amount > 0:
                 ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-                worksheet.append_row([ts, f_cat, f_amount, f_note, query_form, "", ""])
+                # ඔයා දුන්න පිළිවෙළටම: Date, Category, Amount, Description, Type, From_Account, To_Account, Note
+                row_to_save = [ts, f_cat, f_amount, f_desc, query_form, f_from, f_to, f_note]
+                worksheet.append_row(row_to_save)
                 st.query_params.clear()
                 st.rerun()
 
@@ -148,21 +159,24 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 4. RECENT TRANSACTIONS (දැන් මේක වඩාත් පැහැදිලියි) ---
+# --- 4. RECENT TRANSACTIONS ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest = df.iloc[::-1].head(10)
     for _, row in latest.iterrows():
-        # Type එක අනුව Color Class එක තෝරනවා
         card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
         amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
+        
+        # සේෆ් විදිහට Data කියවීම (KeyError නවත්වන්න)
+        display_desc = row.get('Description', '')
+        display_note = row.get('Note', '')
         
         st.markdown(f"""
             <div class="trans-card {card_class}">
                 <div>
                     <div style="font-size:11px; color:gray;">{row['Date']}</div>
                     <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
-                    <div style="font-size:12px; color:#666;">{row['Note'] if row['Note'] else 'No Note'}</div>
+                    <div style="font-size:12px; color:#666;">{display_desc}</div>
                 </div>
                 <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
                     {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
