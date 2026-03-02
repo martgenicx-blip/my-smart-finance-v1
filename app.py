@@ -7,13 +7,12 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 THE "ULTRA MODERN" CSS ---
+# --- 2. 🎨 THE "ULTRA MODERN" CSS & JS FIX ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8f9fc; }
 
-    /* Header */
     .header-wrapper {
         background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
         padding: 50px 20px; color: white; border-radius: 0 0 40px 40px;
@@ -21,80 +20,48 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,122,255,0.25);
     }
 
-    /* Cards */
-    .main-card {
-        background: white; padding: 25px; border-radius: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 25px;
-        border: 1px solid rgba(0,0,0,0.02);
-    }
-
-    /* 🚀 NEW FLOATING ACTION BUTTON (FAB) DESIGN */
+    /* FAB DESIGN */
     .fab-wrapper {
         position: fixed; bottom: 35px; right: 30px; z-index: 9999;
         display: flex; flex-direction: column; align-items: flex-end; gap: 15px;
     }
-    
     .fab-main { 
         width: 65px; height: 65px; 
         background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-        border-radius: 22px; 
-        display: flex; justify-content: center; align-items: center; 
-        color: white; font-size: 32px; font-weight: 300;
-        box-shadow: 0 12px 25px rgba(0,122,255,0.4); 
+        border-radius: 22px; display: flex; justify-content: center; align-items: center; 
+        color: white; font-size: 32px; box-shadow: 0 12px 25px rgba(0,122,255,0.4); 
         cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    
-    .fab-wrapper:hover .fab-main {
-        transform: rotate(135deg) scale(1.1);
-        box-shadow: 0 15px 30px rgba(0,122,255,0.5);
-    }
-
-    .fab-list { 
-        display: none; flex-direction: column; gap: 12px; align-items: flex-end; 
-        animation: slideUp 0.3s ease-out;
-    }
-    
+    .fab-wrapper:hover .fab-main { transform: rotate(135deg) scale(1.1); }
+    .fab-list { display: none; flex-direction: column; gap: 12px; align-items: flex-end; animation: slideUp 0.3s ease-out; }
     .fab-wrapper:hover .fab-list { display: flex; }
 
     .fab-item { 
         display: flex; align-items: center; gap: 12px; 
-        text-decoration: none !important; transition: 0.3s;
+        cursor: pointer; transition: 0.3s; border: none; background: none; padding: 0;
     }
-    
     .fab-item:hover { transform: translateX(-8px); }
-
     .fab-label { 
         background: white; padding: 8px 16px; border-radius: 12px; 
         font-size: 14px; font-weight: 600; color: #1c1c1e;
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        border: 1px solid rgba(0,0,0,0.03);
     }
-    
     .fab-icon { 
         width: 48px; height: 48px; border-radius: 16px; 
         display: flex; justify-content: center; align-items: center; 
         color: white; font-size: 20px; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
     }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Primary Grid Links */
+    /* Grid Buttons */
     .grid-btn {
-        background: white; border-radius: 20px; padding: 20px; 
-        text-align: center; text-decoration: none !important; 
-        color: #1c1c1e !important; font-weight: 700; 
-        border: 1px solid #f1f3f5; display: block;
-        transition: all 0.3s ease;
+        background: white; border-radius: 20px; padding: 20px; text-align: center;
+        text-decoration: none !important; color: #1c1c1e !important; font-weight: 700; 
+        border: 1px solid #f1f3f5; display: block; transition: all 0.3s ease;
     }
-    .grid-btn:hover {
-        border-color: #007AFF; transform: translateY(-5px);
-        box-shadow: 0 12px 25px rgba(0,122,255,0.1);
-    }
+    .grid-btn:hover { border-color: #007AFF; transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,122,255,0.1); }
 
-    /* Vertical Line for Activity */
+    /* Recent Activity */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         display: flex; align-items: center; justify-content: space-between;
@@ -105,6 +72,18 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
     </style>
+
+    <script>
+    function navigateTo(formType) {
+        const url = new URL(window.location.href);
+        if (formType === 'home') {
+            url.search = '';
+        } else {
+            url.searchParams.set('form', formType);
+        }
+        window.location.href = url.href;
+    }
+    </script>
     """, unsafe_allow_html=True)
 
 # --- 3. Google Sheets Connection ---
@@ -124,7 +103,8 @@ except Exception as e: st.error(f"Error: {e}"); st.stop()
 
 # Navigation
 q = st.query_params
-form_type, edit_idx = q.get("form"), q.get("edit")
+form_type = q.get("form")
+edit_idx = q.get("edit")
 
 st.markdown('<div class="header-wrapper"><h1>FinanceFlow</h1><p style="opacity:0.8">Smart Wealth Tracker</p></div>', unsafe_allow_html=True)
 
@@ -168,22 +148,22 @@ if not form_type and not edit_idx:
                 if st.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS (Logic handles redirection/UI) ---
+# --- 6. FORMS ---
 elif form_type or edit_idx:
-    # (Form content logic remains the same for Save/Cancel/Home buttons)
-    st.info("Form Mode Active - Use Home button to go back.")
-    if st.button("Go Home 🏠"): st.query_params.clear(); st.rerun()
+    st.markdown(f'<div class="main-card"><h3>📝 {form_type if form_type else "Edit"} Entry</h3></div>', unsafe_allow_html=True)
+    # (Form content as before)
+    if st.button("Home 🏠"): st.query_params.clear(); st.rerun()
 
-# --- 9. 🔥 THE NEW FAB DESIGN ---
+# --- 9. 🔥 FIXED FAB WITH JS NAVIGATION ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
-            <a href="./" target="_self" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#1c1c1e;">🏠</div></a>
-            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007AFF;">📜</div></a>
-            <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#5856D6;">⚙️</div></a>
-            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#FF9500;">🔄</div></a>
-            <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#34C759;">➕</div></a>
-            <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#FF3B30;">➖</div></a>
+            <div onclick="navigateTo('home')" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#1c1c1e;">🏠</div></div>
+            <div onclick="navigateTo('History')" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007AFF;">📜</div></div>
+            <div onclick="navigateTo('ManageCats')" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#5856D6;">⚙️</div></div>
+            <div onclick="navigateTo('Transfer')" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#FF9500;">🔄</div></div>
+            <div onclick="navigateTo('Income')" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#34C759;">➕</div></div>
+            <div onclick="navigateTo('Expense')" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#FF3B30;">➖</div></div>
         </div>
         <div class="fab-main">+</div>
     </div>
