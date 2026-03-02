@@ -24,14 +24,40 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,0,0,0.05); margin-bottom: 25px;
     }
 
-    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; }
+    /* 🔥 IMPROVED GRID BUTTONS WITH SMOOTH HOVER */
+    .grid-container { 
+        display: grid; 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 15px; 
+        margin-bottom: 30px; 
+    }
     .grid-btn {
-        background: white; border-radius: 18px; padding: 15px; text-align: center;
-        text-decoration: none !important; color: #1c1c1e !important; font-weight: 700;
-        border: 1px solid #f1f3f5; transition: 0.3s;
+        background: #ffffff; 
+        border-radius: 20px; 
+        padding: 22px 15px; 
+        text-align: center;
+        text-decoration: none !important; 
+        color: #1c1c1e !important; 
+        font-weight: 700; 
+        font-size: 16px;
+        border: 2px solid #f1f3f5; 
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); /* Smooth movement */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+    
+    /* Hover Effect */
+    .grid-btn:hover {
+        transform: translateY(-8px); /* Moves up */
+        border-color: #007AFF; /* Blue border */
+        box-shadow: 0 12px 24px rgba(0,122,255,0.15); /* Soft blue shadow */
+        background-color: #ffffff;
     }
 
-    /* ACTIVITY CARDS - FIXED ALIGNMENT */
+    /* Activity Cards */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         padding: 15px 15px 15px 22px; position: relative;
@@ -42,7 +68,6 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* Force buttons inline */
     [data-testid="column"] { display: flex; align-items: center; justify-content: flex-end; gap: 8px !important; }
 
     /* FAB */
@@ -60,7 +85,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. Data Connection (Cached) ---
+# --- 3. Data Connection (Same as before) ---
 @st.cache_resource
 def get_gsheet_client():
     creds = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -94,10 +119,17 @@ if not form_type and not edit_idx:
     if not df.empty:
         t_inc, t_exp = df[df['Type'] == 'Income']['Amount'].sum(), df[df['Type'] == 'Expense']['Amount'].sum()
         curr_bal = opening_bal + t_inc - t_exp
-        st.markdown(f'<div class="premium-card"><div>Net Balance</div><div style="font-size:32px; font-weight:800;">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="premium-card"><div style="color:#8e8e93; font-weight:700; font-size:12px; text-transform:uppercase;">Net Balance</div><div style="font-size:36px; font-weight:800; color:#1c1c1e;">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
 
-    # Main Grid
-    st.markdown('<div class="grid-container"><a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a><a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a><a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a><a href="./?form=History" target="_self" class="grid-btn">📜 History</a></div>', unsafe_allow_html=True)
+    # 🚀 UPDATED ACTION GRID WITH HOVER
+    st.markdown("""
+        <div class="grid-container">
+            <a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a>
+            <a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a>
+            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a>
+            <a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a>
+        </div>
+    """, unsafe_allow_html=True)
 
     if not df.empty:
         st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
@@ -107,12 +139,9 @@ if not form_type and not edit_idx:
             v_color, t_color, sym = ("bg-income", "#34C759", "+") if is_inc else ("bg-expense", "#FF3B30", "-")
             
             st.markdown(f'<div class="activity-container"><div class="v-line {v_color}"></div>', unsafe_allow_html=True)
-            
-            # Left: Category & Amount (Fixed position)
-            # Right: Edit/Delete buttons (Inline)
-            c_info, c_actions = st.columns([0.6, 0.4])
+            c_info, c_actions = st.columns([0.65, 0.35])
             with c_info:
-                st.markdown(f"<b>{row['Category']}</b><br><span style='color:{t_color}; font-weight:700;'>{sym} {row['Amount']:,.0f}</span> <small style='color:#8e8e93; margin-left:10px;'>{row['Date']}</small>", unsafe_allow_html=True)
+                st.markdown(f"<b>{row['Category']}</b><br><span style='color:{t_color}; font-weight:800; font-size:16px;'>{sym} {row['Amount']:,.0f}</span> <small style='color:#8e8e93; margin-left:10px;'>{row['Date']}</small>", unsafe_allow_html=True)
             with c_actions:
                 b1, b2 = st.columns(2)
                 with b1:
