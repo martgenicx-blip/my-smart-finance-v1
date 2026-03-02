@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CSS (FIXING BUTTON FUNCTIONALITY & LOOK) ---
+# --- CSS (layout එක කිසිම වෙනසක් කරලා නැහැ) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -18,52 +18,50 @@ st.markdown("""
         margin: -60px -20px 20px -20px;
     }
 
-    /* --- 2x2 GRID FIX FOR STREAMLIT BUTTONS --- */
+    /* Column Grid එක 2x2 වෙන්න හැදුවා */
     div[data-testid="column"] {
         flex: 1 1 45% !important;
         min-width: 45% !important;
     }
 
-    /* Button Style */
+    /* ඔයාගේ පරණ HTML බටන් එකේම පෙනුම Streamlit බටන් එකට දුන්නා */
     div.stButton > button {
-        width: 100% !important;
-        height: 100px !important;
-        border-radius: 12px !important;
-        background-color: white !important;
-        color: #333 !important;
+        background: white !important;
         border: 1px solid #ddd !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        border-radius: 12px !important;
+        height: 90px !important;
+        width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
+        font-weight: bold !important;
+        color: #333 !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
         text-decoration: none !important;
+        font-size: 14px !important;
+        white-space: pre-wrap !important; /* අයිකන් එකයි ටෙක්ස්ට් එකයි පේළි දෙකකට ගන්න */
     }
 
     div.stButton > button:hover {
         border-color: #0081C9 !important;
         color: #0081C9 !important;
-        background-color: #f0f8ff !important;
     }
 
-    /* Quality Form Styling */
     [data-testid="stForm"] {
         background-color: #ffffff !important;
         padding: 20px !important;
         border-radius: 15px !important;
         border: 1px solid #e0e0e0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
     }
+
     div[data-baseweb="input"] {
         border: 2px solid #d1d1d1 !important;
         border-radius: 10px !important;
-    }
-    div[data-baseweb="input"]:focus-within {
-        border-color: #0081C9 !important;
+        background-color: #fafafa !important;
     }
 
-    /* Summary & Recent Trans */
     .summary-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
@@ -71,7 +69,7 @@ st.markdown("""
 
     /* Floating Button */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -93,38 +91,30 @@ try:
 except Exception:
     st.error("Data Load Error"); st.stop()
 
-# Session State for Forms
-if "active_form" not in st.session_state:
-    st.session_state.active_form = None
-
-# --- 1. ACTION BUTTONS (Real Streamlit Buttons in 2x2 Grid) ---
+# --- 1. ACTION BUTTONS (2x2 Grid with Streamlit Buttons) ---
+# දැන් බටන් ක්ලික් කරාම URL එකේ ?form=Income වගේ වැටෙනවා
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("➕\nIncome", key="btn_inc"): st.session_state.active_form = "Income"
-    if st.button("🔄\nTransfer", key="btn_trf"): st.session_state.active_form = "Transfer"
+    if st.button("➕\nIncome", key="inc"): st.query_params["form"] = "Income"; st.rerun()
+    if st.button("🔄\nTransfer", key="trf"): st.query_params["form"] = "Transfer"; st.rerun()
 with col2:
-    if st.button("➖\nExpense", key="btn_exp"): st.session_state.active_form = "Expense"
-    if st.button("📜\nHistory", key="btn_his"): st.session_state.active_form = "History"
+    if st.button("➖\nExpense", key="exp"): st.query_params["form"] = "Expense"; st.rerun()
+    if st.button("📜\nHistory", key="his"): st.query_params["form"] = "History"; st.rerun()
+
+query_form = st.query_params.get("form")
 
 # --- 2. DATA ENTRY FORM ---
-if st.session_state.active_form in ["Income", "Expense", "Transfer"]:
-    st.markdown(f"### 📝 New {st.session_state.active_form}")
+if query_form in ["Income", "Expense", "Transfer"]:
+    st.markdown(f"### 📝 New {query_form}")
     with st.form("entry_form", clear_on_submit=True):
         f_date = st.date_input("Select Date", date.today())
         f_amount = st.number_input("Enter Amount (LKR)", value=0.0, step=1.0)
-        f_note = st.text_input("Add a Note")
-        
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            if st.form_submit_button("Save Record ✅"):
-                if f_amount > 0:
-                    ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-                    worksheet.append_row([ts, "General", f_amount, f_note, st.session_state.active_form, "", ""])
-                    st.session_state.active_form = None
-                    st.rerun()
-        with col_s2:
-            if st.form_submit_button("Cancel ❌"):
-                st.session_state.active_form = None
+        f_note = st.text_input("Add a Note", placeholder="Write details here...")
+        if st.form_submit_button("Save Record ✅"):
+            if f_amount > 0:
+                ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
+                worksheet.append_row([ts, "General", f_amount, f_note, query_form, "", ""])
+                st.query_params.clear()
                 st.rerun()
 
 # --- 3. SUMMARY CARD ---
