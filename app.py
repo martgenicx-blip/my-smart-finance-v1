@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CUSTOM CSS (Alignment & Design Fix) ---
+# --- CUSTOM CSS (Grid Order & Design Fix) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f8f9fa; }
@@ -20,40 +20,53 @@ st.markdown("""
         font-weight: bold;
         margin: -60px -20px 20px -20px;
     }
-    div[data-testid="stHorizontalBlock"] { gap: 10px !important; }
+    
+    /* Grid Layout Fix */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 12px !important;
+    }
+    
     div.stButton > button {
         width: 100% !important;
-        height: 80px !important;
-        border-radius: 12px !important;
+        height: 90px !important;
+        border-radius: 15px !important;
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #eee !important;
         font-weight: bold !important;
-        font-size: 15px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        font-size: 16px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+        transition: 0.3s;
     }
+    div.stButton > button:hover {
+        border-color: #0081C9 !important;
+        background-color: #f0f8ff !important;
+        transform: translateY(-2px);
+    }
+
     .summary-table {
         width: 100%;
         background: white;
         border-collapse: collapse;
-        margin-top: 10px;
-        border-radius: 10px;
+        margin-top: 15px;
+        border-radius: 12px;
         border: 1px solid #eee;
+        overflow: hidden;
     }
     .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
+    
     .fab-wrapper { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
     .fab-main {
         width: 60px; height: 60px; background: #0081C9; border-radius: 50%;
         display: flex; justify-content: center; align-items: center;
         color: white; font-size: 35px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        cursor: pointer; transition: 0.3s;
+        cursor: pointer;
     }
     .fab-list {
         position: absolute; bottom: 75px; right: 0;
         display: none; flex-direction: column; gap: 12px; align-items: flex-end;
     }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-wrapper:hover .fab-main { transform: rotate(45deg); background: #444; }
     .fab-item { display: flex; align-items: center; gap: 10px; }
     .fab-label {
         color: white; padding: 4px 12px; border-radius: 6px;
@@ -62,7 +75,7 @@ st.markdown("""
     .fab-icon {
         width: 42px; height: 42px; border-radius: 50%;
         display: flex; justify-content: center; align-items: center;
-        color: white; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        color: white; font-size: 18px;
     }
     .bg-income { background-color: #28a745; }
     .bg-expense { background-color: #dc3545; }
@@ -92,7 +105,7 @@ try:
 except:
     st.error("Sheet Connection Error"); st.stop()
 
-# --- 1. MAIN BUTTONS GRID ---
+# --- 1. MAIN BUTTONS GRID (Fix කරපු Order එක) ---
 col1, col2 = st.columns(2)
 with col1:
     if st.button("➕ Income", key="btn_inc"): st.session_state.show_form = "Income"
@@ -105,7 +118,6 @@ with col2:
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
     st.write("---")
     with st.form("entry_form", clear_on_submit=True):
-        # මෙන්න මෙතන තමයි Fix කළේ (පේළිය කැපෙන්නේ නැති වෙන්න):
         st.subheader(f"📝 New {st.session_state.show_form}")
         d = st.date_input("Date", date.today())
         amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00")
@@ -143,7 +155,7 @@ if not df.empty:
         color = "#28a745" if row['Type'] == "Income" else "#dc3545"
         sym = "+" if row['Type'] == "Income" else "-"
         st.markdown(f"""
-            <div style="background:white; padding:15px; border-radius:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div style="background:white; padding:15px; border-radius:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                 <div>
                     <div style="font-size:11px; color:gray;">{row['Date']}</div>
                     <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
