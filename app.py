@@ -67,18 +67,19 @@ st.markdown("""
 # --- 3. Google Sheets Connection ---
 try:
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds_dict = {k: st.secrets["connections"]["gsheets"][k] for k in st.secrets["connections"]["gsheets"]}
+    creds_dict = st.secrets["connections"]["gsheets"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
-    worksheet, cat_sheet = sh.worksheet("Sheet1"), sh.worksheet("Categories")
+    worksheet = sh.worksheet("Sheet1")
+    cat_sheet = sh.worksheet("Categories")
     
     categories = sorted(list(set([row['CategoryName'] for row in cat_sheet.get_all_records() if row['CategoryName']])))
     df = pd.DataFrame(worksheet.get_all_records())
     if not df.empty:
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
-except:
-    st.error("Google Sheets Connection Failed!"); st.stop()
+except Exception as e:
+    st.error(f"Connection Error: {e}"); st.stop()
 
 # --- 4. Navigation ---
 query = st.query_params
@@ -88,9 +89,11 @@ st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_ht
 
 # --- 5. HOME PAGE ---
 if not form_type and not edit_idx:
-    # --- 🧮 Fixed Total Balance Logic ---
+    # --- 🧮 Simple & Correct Total Balance Logic ---
     if not df.empty:
-        opening_bal = 38814.85 # ඔයාගේ මුල් balance එක
+        # පරණ balance එකක් තිබුණා නම් ඒක මෙතනට එකතු කරන්න, නැත්නම් 0 දාන්න
+        opening_bal = 38814.85 
+        
         t_inc = df[df['Type'] == 'Income']['Amount'].sum()
         t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
         current_bal = opening_bal + t_inc - t_exp
@@ -140,9 +143,10 @@ if not form_type and not edit_idx:
 
 # --- 6. HISTORY VIEW ---
 elif form_type == "History":
-    st.subheader("📜 Full History")
-    st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-    if st.button("⬅️ Back"): st.query_params.clear(); st.rerun()
+    st.subheader("📜 Transaction History")
+    if not df.empty:
+        st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+    if st.button("⬅️ Back Home"): st.query_params.clear(); st.rerun()
 
 # --- 7. MANAGE CATEGORIES ---
 elif form_type == "ManageCats":
@@ -153,9 +157,9 @@ elif form_type == "ManageCats":
     for c in categories:
         col1, col2 = st.columns([0.8, 0.2])
         col1.write(f"• {c}")
-        if col2.button("❌", key=f"del_{c}"):
+        if col2.button("❌", key=f"dc_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
-    if st.button("⬅️ Back"): st.query_params.clear(); st.rerun()
+    if st.button("⬅️ Back Home"): st.query_params.clear(); st.rerun()
 
 # --- 8. FORMS (Save & Cancel Inline) ---
 elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
