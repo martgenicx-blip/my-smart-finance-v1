@@ -48,9 +48,6 @@ st.markdown("""
     .trans-income { border-left: 6px solid #28a745 !important; }
     .trans-expense { border-left: 6px solid #dc3545 !important; }
     
-    /* Buttons area styling */
-    .action-btns { display: flex; gap: 5px; justify-content: flex-end; }
-    
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -74,7 +71,18 @@ try:
     worksheet = sh.worksheet("Sheet1")
     cat_sheet = sh.worksheet("Categories")
 
-    categories = [row['CategoryName'] for row in cat_sheet.get_all_records()]
+    # Categories කියවීම සහ Defaults එකතු කිරීම
+    existing_cats = [row['CategoryName'] for row in cat_sheet.get_all_records()]
+    income_defaults = ["Salary", "House Rental"]
+    expense_defaults = ["Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
+    all_defaults = income_defaults + expense_defaults
+    
+    for cat in all_defaults:
+        if cat not in existing_cats:
+            cat_sheet.append_row([cat])
+            existing_cats.append(cat)
+
+    categories = existing_cats
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     
@@ -99,11 +107,22 @@ edit_id = query_params.get("edit")
 
 # --- 6. DATA ENTRY / EDIT FORM ---
 if query_form in ["Income", "Expense", "Transfer"] or edit_id:
+    # 🎯 Filter categories (මෙතනයි වෙනස තියෙන්නේ)
+    current_type = query_form
+    if edit_id:
+        current_type = df.loc[int(edit_id)]['Type']
+    
+    if current_type == "Income":
+        show_cats = [c for c in categories if c in ["Salary", "House Rental"]]
+    else:
+        # Expense වලට Income ඒවා නැතුව අනිත් ඔක්කොම වැටෙනවා
+        show_cats = [c for c in categories if c not in ["Salary", "House Rental"]]
+
     title = f"Edit Record" if edit_id else f"New {query_form}"
     st.markdown(f"### 📝 {title}")
     
-    # පරණ දත්ත ලබා ගැනීම (Edit නම්)
-    default_vals = {"Date": date.today(), "Category": categories[0], "Amount": 0.0, "Description": "", "Note": "", "Type": query_form}
+    default_vals = {"Date": date.today(), "Category": show_cats[0] if show_cats else "General", "Amount": 0.0, "Description": "", "Note": "", "Type": current_type}
+    
     if edit_id:
         row_idx = int(edit_id)
         target_row = df.loc[row_idx]
@@ -118,7 +137,8 @@ if query_form in ["Income", "Expense", "Transfer"] or edit_id:
 
     with st.form("entry_form", clear_on_submit=True):
         f_date = st.date_input("Date", default_vals["Date"])
-        f_cat = st.selectbox("Category", categories, index=categories.index(default_vals["Category"]) if default_vals["Category"] in categories else 0)
+        # Selectbox එකේ පෙන්වන්නේ filter කරපු list එක විතරයි
+        f_cat = st.selectbox("Category", show_cats, index=show_cats.index(default_vals["Category"]) if default_vals["Category"] in show_cats else 0)
         f_amount = st.number_input("Amount (LKR)", value=default_vals["Amount"], step=10.0)
         f_desc = st.text_input("Description", value=default_vals["Description"])
         f_note = st.text_area("Note", value=default_vals["Note"])
@@ -155,7 +175,7 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 8. Recent Transactions with EDIT & DELETE ---
+# --- 8. Recent Transactions ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest_indices = df.index[-10:][::-1]
@@ -164,9 +184,7 @@ if not df.empty:
         card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
         amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
         
-        # UI Layout
         col_info, col_actions = st.columns([0.75, 0.25])
-        
         with col_info:
             st.markdown(f"""
                 <div class="trans-card {card_class}">
