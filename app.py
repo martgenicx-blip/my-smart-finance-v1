@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles (Clean & Borderless) ---
+# --- 2. CSS Styles (Borderless Buttons & Row Styling) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -40,8 +40,8 @@ st.markdown("""
         text-decoration: none !important; transition: 0.2s;
     }
 
-    /* 🔥 Borderless & Padding-less Buttons */
-    div.stButton > button {
+    /* 🔥 Minimalist Row Buttons (Edit/Delete) */
+    .row-btn-container div.stButton > button {
         border: none !important;
         background: transparent !important;
         padding: 0 !important;
@@ -51,8 +51,9 @@ st.markdown("""
         font-size: 18px !important;
         box-shadow: none !important;
     }
-    div.stButton > button:hover { background-color: #eeeeee !important; border-radius: 50% !important; }
+    .row-btn-container div.stButton > button:hover { background-color: #eeeeee !important; border-radius: 50% !important; }
 
+    /* FAB Menu */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -113,7 +114,7 @@ if not form_type and not edit_idx:
         </div>
     """, unsafe_allow_html=True)
 
-    # 🔥 Recent Activity (Inline Alignment)
+    # Recent Activity (60:20:10:10 Alignment)
     if not df.empty:
         st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
         for idx in df.index[-10:][::-1]:
@@ -125,15 +126,19 @@ if not form_type and not edit_idx:
             c1, c2, c3, c4 = st.columns([0.6, 0.2, 0.1, 0.1])
             with c1: st.markdown(f'<div style="padding-top:5px;"><b>{row["Category"]}</b><br><small>{row["Date"]}</small></div>', unsafe_allow_html=True)
             with c2: st.markdown(f'<div style="color:{color}; font-weight:700; font-size:18px; padding-top:10px;">{"+" if is_inc else "-"}{row["Amount"]:,.0f}</div>', unsafe_allow_html=True)
+            
+            # Action Buttons with Borderless CSS class
+            st.markdown('<div class="row-btn-container">', unsafe_allow_html=True)
             with c3:
-                st.write(" ") # Spacer
-                if st.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
+                st.write(" ") 
+                if st.button("📝", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
             with c4:
-                st.write(" ") # Spacer
+                st.write(" ") 
                 if st.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. HISTORY VIEW (NEWLY ADDED) ---
+# --- 6. HISTORY VIEW ---
 elif form_type == "History":
     st.subheader("📜 Transaction History")
     if not df.empty:
@@ -153,22 +158,30 @@ elif form_type == "ManageCats":
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
     if st.button("⬅️ Back Home"): st.query_params.clear(); st.rerun()
 
-# --- 8. INCOME / EXPENSE FORMS ---
+# --- 8. INCOME / EXPENSE FORMS (Save & Cancel Inline) ---
 elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
     curr_type = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
     st.markdown(f"### 📝 {curr_type} Entry")
-    with st.form("entry_form"):
+    
+    with st.container():
         f_date = st.date_input("Date", date.today())
         f_cat = st.selectbox("Category", categories)
         f_amt = st.number_input("Amount", min_value=0.0)
         f_desc = st.text_input("Description")
-        if st.form_submit_button("Save ✅"):
-            ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            r_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
-            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r_data])
-            else: worksheet.append_row(r_data)
-            st.query_params.clear(); st.rerun()
-    if st.button("Cancel"): st.query_params.clear(); st.rerun()
+        
+        st.write(" ") # Padding
+        # 🔥 Save සහ Cancel බටන් දෙක එක ළඟට ගැනීම
+        btn_col1, btn_col2 = st.columns([0.2, 0.8])
+        with btn_col1:
+            if st.button("Save ✅"):
+                ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
+                r_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
+                if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r_data])
+                else: worksheet.append_row(r_data)
+                st.query_params.clear(); st.rerun()
+        with btn_col2:
+            if st.button("Cancel ❌"):
+                st.query_params.clear(); st.rerun()
 
 # --- 9. Floating Menu ---
 st.markdown("""<div class="fab-wrapper"><div class="fab-list"><a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a><a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a><a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a><a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a><a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a></div><div class="fab-main">+</div></div>""", unsafe_allow_html=True)
