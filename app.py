@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- 2. CSS Styles ---
+# --- 2. CSS Styles (ස්පේස් එක ඇතුළුව අලුත් කළා) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f1f3f6; }
@@ -39,15 +39,28 @@ st.markdown("""
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     
-    .trans-card-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    /* Transaction Card එක වටේට space එකක් දුන්නා */
+    .trans-card-wrapper { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 15px; /* කාඩ් එකේ යටින් ඉඩ තැබීම */
+    }
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 10px; 
         flex-grow: 1; display: flex; justify-content: space-between; 
-        align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
-    .trans-income { border-left: 5px solid #28a745 !important; }
-    .trans-expense { border-left: 5px solid #dc3545 !important; }
+    .trans-income { border-left: 6px solid #28a745 !important; }
+    .trans-expense { border-left: 6px solid #dc3545 !important; }
     
+    /* Delete button style */
+    div[data-testid="column"] button {
+        height: 45px;
+        margin-top: 5px;
+        border-radius: 8px !important;
+    }
+
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 999999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -59,7 +72,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 3. Header ---
-st.markdown('<div class="header-bar">Income Expense Tracker</div>', unsafe_allow_html=True)
+st.markdown('<div class="header-bar">Smart Finance Tracker</div>', unsafe_allow_html=True)
 
 # --- 4. Google Sheets Connection ---
 try:
@@ -166,39 +179,43 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 8. Recent Transactions with DELETE Option ---
+# --- 8. Recent Transactions (පිළිවෙළට ස්පේස් සහිතව) ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
-    # අපි Index එකත් එක්කම දත්ත ටික ගමු, එතකොට delete කරන්න ලේසියි
-    latest_indices = df.index[-10:][::-1] # අන්තිම 10 පේළි අනිත් පැත්තට
+    latest_indices = df.index[-10:][::-1]
     
     for idx in latest_indices:
         row = df.loc[idx]
         card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
         amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
         
-        col_card, col_del = st.columns([0.85, 0.15])
+        # කොලම් දෙකකට බෙදුවා කාඩ් එකයි ඩිලීට් බට්න් එකයි අතර ඉඩ තියන්න
+        col_card, col_del = st.columns([0.88, 0.12])
         
         with col_card:
             st.markdown(f"""
                 <div class="trans-card {card_class}">
                     <div>
-                        <div style="font-size:11px; color:gray;">{row['Date']}</div>
-                        <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
-                        <div style="font-size:12px; color:#666;">{row.get('Description', '')}</div>
+                        <div style="font-size:10px; color:gray;">{row['Date']}</div>
+                        <div style="font-weight:bold; font-size:13px; color:#333;">{row['Category']}</div>
+                        <div style="font-size:11px; color:#666;">{row.get('Description', '')}</div>
                     </div>
-                    <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
+                    <div style="color:{amount_color}; font-weight:bold; font-size:15px; text-align:right;">
                         {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
         
         with col_del:
-            # Delete button එකට අදාළ row index එක දෙනවා (Sheets වල index එක පටන් ගන්නේ 2න් නිසා +2 කරනවා)
             if st.button("🗑️", key=f"del_{idx}"):
                 worksheet.delete_rows(int(idx) + 2)
-                st.success("Deleted!")
-                st.rerun()
+                st.success("Done!"); st.rerun()
+        
+        # පොඩි හිස් පේළියක් එකතු කරමු
+        st.markdown('<div style="margin-bottom: -5px;"></div>', unsafe_allow_html=True)
+
+else:
+    st.info("No records yet.")
 
 # --- 9. Floating Menu ---
 st.markdown(f"""
