@@ -18,47 +18,35 @@ st.markdown("""
         margin: -60px -20px 20px -20px;
     }
 
-    /* --- NEW GRID SYSTEM FOR TOP BUTTONS --- */
-    .button-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr); /* Mobile: 2 columns */
-        gap: 12px;
-        margin-bottom: 20px;
+    /* --- CLEAN GRID FOR TOP BUTTONS --- */
+    /* මෙතනින් තමයි බටන් 4 ලස්සනට පේළියට ගන්නේ */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 12px !important;
     }
 
-    @media (min-width: 800px) {
-        .button-grid {
-            grid-template-columns: repeat(4, 1fr); /* Desktop: 4 columns */
-        }
-    }
-
-    /* Styling for the custom HTML buttons */
-    .grid-btn {
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 15px;
-        padding: 20px 10px;
-        text-align: center;
-        font-weight: bold;
-        color: #333;
-        text-decoration: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    div.stButton > button {
+        width: 100% !important;
+        height: 85px !important;
+        border-radius: 12px !important;
+        background-color: white !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+        transition: 0.3s;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: 0.3s;
-        font-size: 14px;
-        height: 90px;
+        white-space: pre-wrap !important; /* Icon එකයි නමයි පේළි දෙකකට ගන්න */
     }
-    .grid-btn:hover {
-        border-color: #0081C9;
-        background-color: #f0f8ff;
+    
+    div.stButton > button:hover {
+        border-color: #0081C9 !important;
+        background-color: #f0f8ff !important;
         transform: translateY(-2px);
     }
-    .btn-icon { font-size: 24px; }
 
     /* Summary Table */
     .summary-table {
@@ -67,7 +55,7 @@ st.markdown("""
     }
     .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
 
-    /* --- FLOATING MENU (Unchanged as requested) --- */
+    /* --- FLOATING MENU (එහෙම්මමයි) --- */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 99999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: 0.3s; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
@@ -104,37 +92,17 @@ try:
 except:
     st.error("Sheet Connection Error"); st.stop()
 
-# --- 1. TOP BUTTONS (Custom HTML Grid) ---
-# Streamlit buttons වෙනුවට Clickable HTML div පාවිච්චි කරනවා Alignment එක ගන්න
-st.markdown("""
-    <div class="button-grid">
-        <div class="grid-btn" onclick="window.location.reload()">
-            <span class="btn-icon">➕</span> Income
-        </div>
-        <div class="grid-btn" onclick="window.location.reload()">
-            <span class="btn-icon">➖</span> Expense
-        </div>
-        <div class="grid-btn" onclick="window.location.reload()">
-            <span class="btn-icon">🔄</span> Transfer
-        </div>
-        <div class="grid-btn" onclick="window.location.reload()">
-            <span class="btn-icon">📜</span> History
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-# සටහන: උඩ බටන් වලින් Form එක Open කරන්න නම් Streamlit වල 'st.button' ම ඕනේ. 
-# ඉහත HTML එක වැඩ කරන්නේ නැත්නම්, පහල තියෙන Columns විදිහටම මම CSS එක Fix කළා:
-
+# --- 1. TOP BUTTONS (Cleaned & Responsive) ---
+# වැඩිපුර තිබුණ HTML බටන් ටික අයින් කරලා Streamlit Columns විතරක් පාවිච්චි කළා
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    if st.button("➕ Income", key="real_inc"): st.session_state.show_form = "Income"
+    if st.button("➕\nIncome", key="btn_inc"): st.session_state.show_form = "Income"
 with col2:
-    if st.button("➖ Expense", key="real_exp"): st.session_state.show_form = "Expense"
+    if st.button("➖\nExpense", key="btn_exp"): st.session_state.show_form = "Expense"
 with col3:
-    if st.button("🔄 Transfer", key="real_trf"): st.session_state.show_form = "Transfer"
+    if st.button("🔄\nTransfer", key="btn_trf"): st.session_state.show_form = "Transfer"
 with col4:
-    if st.button("📜 History", key="real_his"): st.session_state.show_form = "History"
+    if st.button("📜\nHistory", key="btn_his"): st.session_state.show_form = "History"
 
 # --- 2. DATA ENTRY FORM ---
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
