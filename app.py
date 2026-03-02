@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CUSTOM CSS (Button Grid & Floating Menu) ---
+# --- CUSTOM CSS (Responsive Columns Fix) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f8f9fa; }
@@ -18,15 +18,30 @@ st.markdown("""
         margin: -60px -20px 20px -20px;
     }
 
-    /* --- CLEAN GRID FOR TOP BUTTONS --- */
-    /* මෙතනින් තමයි බටන් 4 ලස්සනට පේළියට ගන්නේ */
+    /* --- RESPONSIVE COLUMNS FIX --- */
+    /* Mobile එකේදී බටන් 2 බැගින් පේළි 2කට ගන්න */
     div[data-testid="stHorizontalBlock"] {
-        gap: 12px !important;
+        display: flex !important;
+        flex-wrap: wrap !important; /* මේකෙන් තමයි පල්ලෙහාට ගන්නේ */
+        gap: 10px !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] > div {
+        flex: 1 1 calc(50% - 10px) !important; /* Mobile: 50% width */
+        min-width: calc(50% - 10px) !important;
+    }
+
+    /* Desktop එකේදී (800px+) බටන් 4ම එක පේළියට ගන්න */
+    @media (min-width: 800px) {
+        div[data-testid="stHorizontalBlock"] > div {
+            flex: 1 1 0% !important;
+            min-width: 0 !important;
+        }
     }
 
     div.stButton > button {
         width: 100% !important;
-        height: 85px !important;
+        height: 80px !important;
         border-radius: 12px !important;
         background-color: white !important;
         color: #333 !important;
@@ -34,36 +49,24 @@ st.markdown("""
         font-weight: bold !important;
         font-size: 14px !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-        transition: 0.3s;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        white-space: pre-wrap !important; /* Icon එකයි නමයි පේළි දෙකකට ගන්න */
+        white-space: pre-wrap !important;
     }
     
     div.stButton > button:hover {
         border-color: #0081C9 !important;
         background-color: #f0f8ff !important;
-        transform: translateY(-2px);
     }
 
-    /* Summary Table */
-    .summary-table {
-        width: 100%; background: white; border-collapse: collapse;
-        margin-top: 15px; border-radius: 12px; border: 1px solid #eee; overflow: hidden;
-    }
+    /* Summary Table & Floating Menu (Unchanged) */
+    .summary-table { width: 100%; background: white; border-collapse: collapse; margin-top: 15px; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
     .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
-
-    /* --- FLOATING MENU (එහෙම්මමයි) --- */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 99999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: 0.3s; }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-wrapper:hover .fab-main { transform: rotate(45deg); background: #333; }
     .fab-item { display: flex; align-items: center; gap: 10px; }
-    .fab-label { color: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .fab-label { color: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; background: rgba(0,0,0,0.7); }
+    .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; }
     .bg-income { background-color: #28a745; }
     .bg-expense { background-color: #dc3545; }
     .bg-transfer { background-color: #fd7e14; }
@@ -90,10 +93,10 @@ try:
         df['Date_Only'] = pd.to_datetime(df['Date'], format='mixed').dt.date
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except:
-    st.error("Sheet Connection Error"); st.stop()
+    st.error("Connection Error"); st.stop()
 
-# --- 1. TOP BUTTONS (Cleaned & Responsive) ---
-# වැඩිපුර තිබුණ HTML බටන් ටික අයින් කරලා Streamlit Columns විතරක් පාවිච්චි කළා
+# --- MAIN BUTTON GRID ---
+# Columns 4ක් දැම්මට Mobile එකේදී CSS එකෙන් මේවා 2x2 කරනවා
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     if st.button("➕\nIncome", key="btn_inc"): st.session_state.show_form = "Income"
@@ -104,7 +107,7 @@ with col3:
 with col4:
     if st.button("📜\nHistory", key="btn_his"): st.session_state.show_form = "History"
 
-# --- 2. DATA ENTRY FORM ---
+# --- DATA ENTRY FORM ---
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
     st.write("---")
     with st.form("entry_form", clear_on_submit=True):
@@ -119,7 +122,7 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
                 st.session_state.show_form = None
                 st.rerun()
 
-# --- 3. SUMMARY SECTION ---
+# --- SUMMARY & TRANSACTIONS (කලින් විදිහමයි) ---
 if not df.empty:
     ti = df[df['Type'] == 'Income']['Amount'].sum()
     te = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -137,7 +140,7 @@ if not df.empty:
         </table>
     """, unsafe_allow_html=True)
 
-# --- 4. TRANSACTION LIST ---
+# --- RECENT TRANSACTIONS ---
 st.markdown("<br><b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest = df.iloc[::-1].head(10)
@@ -155,14 +158,14 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
 
-# --- 5. FLOATING MENU ---
+# --- FLOATING MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
-            <div class="fab-item"><span class="fab-label bg-trans">Transactions</span><div class="fab-icon bg-trans">📜</div></div>
-            <div class="fab-item"><span class="fab-label bg-transfer">Transfer</span><div class="fab-icon bg-transfer">🔄</div></div>
-            <div class="fab-item"><span class="fab-label bg-income">Add Income</span><div class="fab-icon bg-income">➕</div></div>
-            <div class="fab-item"><span class="fab-label bg-expense">Add Expense</span><div class="fab-icon bg-expense">➖</div></div>
+            <div class="fab-item"><span class="fab-label">Transactions</span><div class="fab-icon bg-trans">📜</div></div>
+            <div class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon bg-transfer">🔄</div></div>
+            <div class="fab-item"><span class="fab-label">Add Income</span><div class="fab-icon bg-income">➕</div></div>
+            <div class="fab-item"><span class="fab-label">Add Expense</span><div class="fab-icon bg-expense">➖</div></div>
         </div>
         <div class="fab-main">+</div>
     </div>
