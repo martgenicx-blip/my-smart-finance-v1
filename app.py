@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 ULTIMATE PREMIUM UI CSS ---
+# --- 2. 🎨 ULTIMATE PREMIUM UI CSS (FIXED) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
@@ -28,16 +28,6 @@ st.markdown("""
         border: 1px solid #f1f3f5;
     }
 
-    /* Action Grid */
-    .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 30px; }
-    .grid-btn { 
-        background: white; border-radius: 20px; padding: 20px; 
-        text-align: center; text-decoration: none !important; 
-        color: #1c1c1e !important; font-weight: 700; 
-        border: 1px solid #f1f3f5; transition: 0.3s; 
-    }
-    .grid-btn:hover { border-color: #007AFF; transform: translateY(-3px); }
-
     /* Recent Activity with Left Bar */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
@@ -50,26 +40,36 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* 🔥 NEW PREMIUM BUTTON STYLES */
-    /* Save/Update Button (Primary) */
-    .stButton > button[kind="primary"] {
-        background: #007AFF !important; color: white !important;
-        border-radius: 15px !important; width: 100% !important;
-        height: 50px !important; font-weight: 700 !important;
-        border: none !important; box-shadow: 0 4px 15px rgba(0,122,255,0.3) !important;
+    /* 🔥 MODIFIED BUTTON STYLES (No 'kind' needed) */
+    /* Target buttons by their text using Streamlit's internal classes */
+    div.stButton > button {
+        border-radius: 15px !important;
+        width: 100% !important;
+        height: 50px !important;
+        font-weight: 700 !important;
+        transition: 0.3s !important;
+        border: none !important;
     }
-    
-    /* Back/Cancel Button (Secondary) */
-    .stButton > button[kind="secondary"] {
-        background: #F2F2F7 !important; color: #1C1C1E !important;
-        border-radius: 15px !important; width: 100% !important;
-        height: 50px !important; font-weight: 600 !important;
+
+    /* Save/Update Buttons (Green/Blue feel) */
+    div.stButton > button:contains("Save"), div.stButton > button:contains("Add"), div.stButton > button:contains("Update") {
+        background-color: #007AFF !important;
+        color: white !important;
+        box-shadow: 0 4px 15px rgba(0,122,255,0.3) !important;
+    }
+
+    /* Cancel/Back Buttons (Gray feel) */
+    div.stButton > button:contains("Cancel"), div.stButton > button:contains("Back") {
+        background-color: #F2F2F7 !important;
+        color: #1C1C1E !important;
         border: 1px solid #E5E5EA !important;
     }
 
-    /* Tiny Action Icons (Edit/Delete) */
-    .stButton > button {
-        border-radius: 12px !important; background: #f1f3f5 !important;
+    /* Action Icons (Edit/Delete) remain small */
+    div.stButton > button[key*="e_"], div.stButton > button[key*="d_"] {
+        height: 40px !important;
+        background-color: #f1f3f5 !important;
+        box-shadow: none !important;
     }
 
     /* Floating Menu (+) */
@@ -82,7 +82,7 @@ st.markdown("""
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
-    .fab-label { background: white; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .fab-label { background: white; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: #333; }
     .fab-icon { width: 45px; height: 45px; border-radius: 15px; display: flex; justify-content: center; align-items: center; color: white; }
     </style>
     """, unsafe_allow_html=True)
@@ -125,14 +125,13 @@ if not form_type and not edit_idx:
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("""
-        <div class="action-grid">
-            <a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a>
-            <a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a>
-            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a>
-            <a href="./?form=History" target="_self" class="grid-btn">📜 History</a>
-        </div>
-    """, unsafe_allow_html=True)
+    # Action Grid
+    st.markdown('<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:30px;">'
+                '<a href="./?form=Income" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">💰 Income</a>'
+                '<a href="./?form=Expense" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">💸 Expense</a>'
+                '<a href="./?form=Transfer" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">🔄 Transfer</a>'
+                '<a href="./?form=History" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">📜 History</a>'
+                '</div>', unsafe_allow_html=True)
 
     if not df.empty:
         st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
@@ -161,25 +160,25 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
     st.markdown("<br>", unsafe_allow_html=True)
     c_btn1, c_btn2 = st.columns(2)
     with c_btn1:
-        if st.button("Save Entry ✅", kind="primary"):
+        if st.button("Save Entry ✅"):
             r = [f"{f_date} {datetime.now().strftime('%H:%M:%S')}", f_cat, f_amt, f_desc, t, "Cash", "Bank", ""]
             if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r])
             else: worksheet.append_row(r)
             st.query_params.clear(); st.rerun()
     with c_btn2:
-        if st.button("Cancel ❌", kind="secondary"):
+        if st.button("Cancel ❌"):
             st.query_params.clear(); st.rerun()
 
 # --- 7. SETTINGS ---
 elif form_type == "ManageCats":
     st.markdown('<div class="main-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
     new_ob = st.number_input("Opening Balance", value=opening_bal)
-    if st.button("Update Balance Update 💰", kind="primary"):
+    if st.button("Update Balance Update 💰"):
         cat_sheet.update_acell('B1', new_ob); st.rerun()
     
     st.markdown("#### Categories")
     new_cat = st.text_input("New Category")
-    if st.button("Add Category ➕", kind="primary"):
+    if st.button("Add Category ➕"):
         if new_cat: cat_sheet.append_row([new_cat]); st.rerun()
     
     st.write("---")
@@ -189,14 +188,14 @@ elif form_type == "ManageCats":
         if col2.button("❌", key=f"del_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
             
-    if st.button("Back Home ⬅️", kind="secondary"):
+    if st.button("Back Home ⬅️"):
         st.query_params.clear(); st.rerun()
 
 # --- 8. HISTORY ---
 elif form_type == "History":
     st.markdown('<div class="main-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
     st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-    if st.button("Back Home ⬅️", kind="secondary"):
+    if st.button("Back Home ⬅️"):
         st.query_params.clear(); st.rerun()
 
 # --- 9. FLOATING ACTION MENU ---
