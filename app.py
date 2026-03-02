@@ -39,9 +39,10 @@ st.markdown("""
     .sum-grid { display: flex; justify-content: space-around; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
     .bal-box { background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: right; font-weight: bold; color: green; }
     
+    .trans-card-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 10px; 
-        margin-bottom: 10px; display: flex; justify-content: space-between; 
+        flex-grow: 1; display: flex; justify-content: space-between; 
         align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
     .trans-income { border-left: 5px solid #28a745 !important; }
@@ -76,8 +77,6 @@ try:
         cat_sheet.append_row(["CategoryName"])
 
     existing_cats = [row['CategoryName'] for row in cat_sheet.get_all_records()]
-    
-    # Defaults
     income_defaults = ["Salary", "House Rental"]
     expense_defaults = ["Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
     all_defaults = income_defaults + expense_defaults
@@ -86,7 +85,6 @@ try:
         if cat not in existing_cats:
             cat_sheet.append_row([cat])
     
-    # Reload categories
     categories = [row['CategoryName'] for row in cat_sheet.get_all_records()]
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
@@ -114,7 +112,6 @@ query_form = st.query_params.get("form")
 if query_form in ["Income", "Expense", "Transfer"]:
     st.markdown(f"### 📝 New {query_form}")
     
-    # Filter categories based on selection
     if query_form == "Income":
         show_cats = [c for c in categories if c in ["Salary", "House Rental"]]
     else:
@@ -148,7 +145,7 @@ if query_form in ["Income", "Expense", "Transfer"]:
                 st.query_params.clear()
                 st.rerun()
 
-# --- 7. Dashboard & 8. Recent Transactions (Same as before) ---
+# --- 7. Summary Dashboard ---
 if not df.empty:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -169,24 +166,39 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
+# --- 8. Recent Transactions with DELETE Option ---
 st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
-    latest = df.iloc[::-1].head(10)
-    for _, row in latest.iterrows():
+    # අපි Index එකත් එක්කම දත්ත ටික ගමු, එතකොට delete කරන්න ලේසියි
+    latest_indices = df.index[-10:][::-1] # අන්තිම 10 පේළි අනිත් පැත්තට
+    
+    for idx in latest_indices:
+        row = df.loc[idx]
         card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
         amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
-        st.markdown(f"""
-            <div class="trans-card {card_class}">
-                <div>
-                    <div style="font-size:11px; color:gray;">{row['Date']}</div>
-                    <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
-                    <div style="font-size:12px; color:#666;">{row.get('Description', '')}</div>
+        
+        col_card, col_del = st.columns([0.85, 0.15])
+        
+        with col_card:
+            st.markdown(f"""
+                <div class="trans-card {card_class}">
+                    <div>
+                        <div style="font-size:11px; color:gray;">{row['Date']}</div>
+                        <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
+                        <div style="font-size:12px; color:#666;">{row.get('Description', '')}</div>
+                    </div>
+                    <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
+                        {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
+                    </div>
                 </div>
-                <div style="color:{amount_color}; font-weight:bold; font-size:16px; text-align:right;">
-                    {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+        
+        with col_del:
+            # Delete button එකට අදාළ row index එක දෙනවා (Sheets වල index එක පටන් ගන්නේ 2න් නිසා +2 කරනවා)
+            if st.button("🗑️", key=f"del_{idx}"):
+                worksheet.delete_rows(int(idx) + 2)
+                st.success("Deleted!")
+                st.rerun()
 
 # --- 9. Floating Menu ---
 st.markdown(f"""
