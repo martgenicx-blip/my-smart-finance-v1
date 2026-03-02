@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 ULTIMATE PREMIUM UI CSS (FIXED) ---
+# --- 2. 🎨 ULTIMATE PREMIUM UI CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
@@ -28,7 +28,7 @@ st.markdown("""
         border: 1px solid #f1f3f5;
     }
 
-    /* Recent Activity with Left Bar */
+    /* Vertical Line Styling */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         display: flex; align-items: center; justify-content: space-between;
@@ -40,36 +40,22 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* 🔥 MODIFIED BUTTON STYLES (No 'kind' needed) */
-    /* Target buttons by their text using Streamlit's internal classes */
+    /* Button Styling */
     div.stButton > button {
-        border-radius: 15px !important;
-        width: 100% !important;
-        height: 50px !important;
-        font-weight: 700 !important;
-        transition: 0.3s !important;
-        border: none !important;
+        border-radius: 15px !important; width: 100% !important; height: 50px !important;
+        font-weight: 700 !important; transition: 0.3s !important; border: none !important;
     }
 
-    /* Save/Update Buttons (Green/Blue feel) */
+    /* Primary Buttons (Save, Update, Add) */
     div.stButton > button:contains("Save"), div.stButton > button:contains("Add"), div.stButton > button:contains("Update") {
-        background-color: #007AFF !important;
-        color: white !important;
-        box-shadow: 0 4px 15px rgba(0,122,255,0.3) !important;
+        background-color: #007AFF !important; color: white !important;
+        box-shadow: 0 4px 15px rgba(0,122,255,0.2) !important;
     }
 
-    /* Cancel/Back Buttons (Gray feel) */
-    div.stButton > button:contains("Cancel"), div.stButton > button:contains("Back") {
-        background-color: #F2F2F7 !important;
-        color: #1C1C1E !important;
+    /* Secondary/Home Buttons (Cancel, Back, Home) */
+    div.stButton > button:contains("Cancel"), div.stButton > button:contains("Back"), div.stButton > button:contains("Home") {
+        background-color: #F2F2F7 !important; color: #1C1C1E !important;
         border: 1px solid #E5E5EA !important;
-    }
-
-    /* Action Icons (Edit/Delete) remain small */
-    div.stButton > button[key*="e_"], div.stButton > button[key*="d_"] {
-        height: 40px !important;
-        background-color: #f1f3f5 !important;
-        box-shadow: none !important;
     }
 
     /* Floating Menu (+) */
@@ -148,7 +134,7 @@ if not form_type and not edit_idx:
                 if st.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS (Income/Expense/Transfer) ---
+# --- 6. FORMS ---
 elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
     t = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
     st.markdown(f'<div class="main-card"><h3>📝 Add {t}</h3></div>', unsafe_allow_html=True)
@@ -158,7 +144,7 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
     f_desc = st.text_input("Note")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    c_btn1, c_btn2 = st.columns(2)
+    c_btn1, c_btn2, c_btn3 = st.columns(3)
     with c_btn1:
         if st.button("Save Entry ✅"):
             r = [f"{f_date} {datetime.now().strftime('%H:%M:%S')}", f_cat, f_amt, f_desc, t, "Cash", "Bank", ""]
@@ -166,42 +152,41 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
             else: worksheet.append_row(r)
             st.query_params.clear(); st.rerun()
     with c_btn2:
-        if st.button("Cancel ❌"):
-            st.query_params.clear(); st.rerun()
+        if st.button("Cancel ❌"): st.query_params.clear(); st.rerun()
+    with c_btn3:
+        if st.button("Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 7. SETTINGS ---
 elif form_type == "ManageCats":
     st.markdown('<div class="main-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
     new_ob = st.number_input("Opening Balance", value=opening_bal)
-    if st.button("Update Balance Update 💰"):
-        cat_sheet.update_acell('B1', new_ob); st.rerun()
+    if st.button("Update Balance 💰"): cat_sheet.update_acell('B1', new_ob); st.rerun()
     
     st.markdown("#### Categories")
     new_cat = st.text_input("New Category")
     if st.button("Add Category ➕"):
         if new_cat: cat_sheet.append_row([new_cat]); st.rerun()
     
-    st.write("---")
     for c in categories:
         col1, col2 = st.columns([0.85, 0.15])
         col1.markdown(f"<div style='padding:12px; background:#f8f9fa; border-radius:12px; margin-bottom:5px;'>{c}</div>", unsafe_allow_html=True)
         if col2.button("❌", key=f"del_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
             
-    if st.button("Back Home ⬅️"):
-        st.query_params.clear(); st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Back to Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 8. HISTORY ---
 elif form_type == "History":
     st.markdown('<div class="main-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
     st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-    if st.button("Back Home ⬅️"):
-        st.query_params.clear(); st.rerun()
+    if st.button("Back Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 9. FLOATING ACTION MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
+            <a href="./" target="_self" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#000000;">🏠</div></a>
             <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007AFF;">📜</div></a>
             <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a>
             <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a>
