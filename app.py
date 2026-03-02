@@ -21,13 +21,45 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,122,255,0.25);
     }
 
-    .main-card {
-        background: white; padding: 25px; border-radius: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 25px;
-        border: 1px solid rgba(0,0,0,0.02);
+    /* 🔥 MODERN PREMIUM BALANCE CARD */
+    .premium-card {
+        background: linear-gradient(145deg, #ffffff, #f0f4f8);
+        border-radius: 30px;
+        padding: 35px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        border: 1px solid rgba(255,255,255,0.8);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
     }
+    .premium-card::before {
+        content: ""; position: absolute; top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background: radial-gradient(circle, rgba(0,122,255,0.03) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .balance-label {
+        color: #8E8E93; font-size: 14px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px;
+    }
+    .balance-amount {
+        color: #1c1c1e; font-size: 42px; font-weight: 800;
+        letter-spacing: -1px; margin-bottom: 25px;
+    }
+    .stat-container {
+        display: flex; gap: 20px; padding-top: 25px;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    .stat-box {
+        flex: 1; padding: 15px; border-radius: 20px;
+        background: rgba(255,255,255,0.5);
+    }
+    .stat-inc { border-left: 5px solid #34C759; }
+    .stat-exp { border-left: 5px solid #FF3B30; }
+    .stat-title { color: #8E8E93; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .stat-value { font-size: 18px; font-weight: 700; }
 
-    /* Primary Grid Links */
+    /* Buttons & Activity Styles (Unchanged) */
     .grid-btn {
         background: white; border-radius: 20px; padding: 20px; 
         text-align: center; text-decoration: none !important; 
@@ -35,19 +67,8 @@ st.markdown("""
         border: 1px solid #f1f3f5; display: block;
         transition: all 0.3s ease;
     }
-    .grid-btn:hover {
-        border-color: #007AFF; transform: translateY(-5px);
-        box-shadow: 0 12px 25px rgba(0,122,255,0.1);
-    }
-
-    /* Button Styling */
-    div.stButton > button {
-        border-radius: 15px !important; width: 100% !important; height: 50px !important;
-        font-weight: 700 !important; transition: all 0.3s ease !important;
-    }
-    div.stButton > button:hover { transform: scale(1.02); }
-
-    /* Recent Activity */
+    .grid-btn:hover { border-color: #007AFF; transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,122,255,0.1); }
+    div.stButton > button { border-radius: 15px !important; width: 100% !important; height: 50px !important; font-weight: 700 !important; }
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         display: flex; align-items: center; justify-content: space-between;
@@ -58,7 +79,7 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* FAB DESIGN */
+    /* FAB (Unchanged) */
     .fab-wrapper { position: fixed; bottom: 35px; right: 30px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
     .fab-main { 
         width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
@@ -74,8 +95,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. Google Sheets Connection with CACHING ---
-# 
+# --- 3. Data Connection (Cashed) ---
 @st.cache_resource
 def get_gsheet_client():
     creds = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -84,32 +104,23 @@ def get_gsheet_client():
 try:
     client = get_gsheet_client()
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
-    worksheet = sh.worksheet("Sheet1")
-    cat_sheet = sh.worksheet("Categories")
+    worksheet, cat_sheet = sh.worksheet("Sheet1"), sh.worksheet("Categories")
 
-    @st.cache_data(ttl=60) # විනාඩියක් යනකම් Data මතක තියාගන්නවා (Quota Error Fix)
+    @st.cache_data(ttl=60)
     def load_data():
         df_all = pd.DataFrame(worksheet.get_all_records())
-        if not df_all.empty:
-            df_all['Amount'] = pd.to_numeric(df_all['Amount'], errors='coerce').fillna(0)
-        
-        # Categories and Opening Balance
+        if not df_all.empty: df_all['Amount'] = pd.to_numeric(df_all['Amount'], errors='coerce').fillna(0)
         cats = sorted(list(set([row['CategoryName'] for row in cat_sheet.get_all_records() if row['CategoryName']])))
         try: op_bal = float(cat_sheet.acell('B1').value.replace(',', ''))
         except: op_bal = 0.0
-        
         return df_all, cats, op_bal
 
     df, categories, opening_bal = load_data()
-
 except Exception as e:
-    st.error(f"⚠️ Connection Error: {e}")
-    st.stop()
+    st.error(f"Error: {e}"); st.stop()
 
-# Navigation logic
 q = st.query_params
-form_type = q.get("form")
-edit_idx = q.get("edit")
+form_type, edit_idx = q.get("form"), q.get("edit")
 
 st.markdown('<div class="header-wrapper"><h1>FinanceFlow</h1><p style="opacity:0.8">Smart Wealth Tracker</p></div>', unsafe_allow_html=True)
 
@@ -120,13 +131,20 @@ if not form_type and not edit_idx:
         t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
         curr_bal = opening_bal + t_inc - t_exp
 
+        # 🔥 THE NEW PREMIUM QUALITY CARD
         st.markdown(f"""
-            <div class="main-card">
-                <small style="color:#8e8e93; font-weight:700; text-transform:uppercase;">Net Balance</small>
-                <h1 style="color:#1c1c1e; margin:5px 0; font-size:36px;">LKR {curr_bal:,.2f}</h1>
-                <div style="display:flex; gap:30px; margin-top:20px; padding-top:15px; border-top:1px solid #f8f9fa;">
-                    <div><small style="color:#8e8e93">Income</small><br><b style="color:#34C759; font-size:18px;">+ {t_inc:,.0f}</b></div>
-                    <div><small style="color:#8e8e93">Expenses</small><br><b style="color:#FF3B30; font-size:18px;">- {t_exp:,.0f}</b></div>
+            <div class="premium-card">
+                <div class="balance-label">Net Balance</div>
+                <div class="balance-amount">LKR {curr_bal:,.2f}</div>
+                <div class="stat-container">
+                    <div class="stat-box stat-inc">
+                        <div class="stat-title">Income</div>
+                        <div class="stat-value" style="color: #34C759;">+ {t_inc:,.0f}</div>
+                    </div>
+                    <div class="stat-box stat-exp">
+                        <div class="stat-title">Expenses</div>
+                        <div class="stat-value" style="color: #FF3B30;">- {t_exp:,.0f}</div>
+                    </div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -151,13 +169,12 @@ if not form_type and not edit_idx:
             with c3:
                 if st.button("🗑️", key=f"d_{idx}"):
                     worksheet.delete_rows(int(idx)+2)
-                    st.cache_data.clear() # දත්ත මැකුවම Cache එක Clear කරන්න ඕනේ
-                    st.rerun()
+                    st.cache_data.clear(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS (Income / Expense) ---
+# --- 6. FORMS ---
 elif form_type in ["Income", "Expense", "Transfer"]:
-    st.markdown(f'<div class="main-card"><h3>📝 Add {form_type}</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="premium-card"><h3>📝 Add {form_type}</h3></div>', unsafe_allow_html=True)
     f_date = st.date_input("Date", date.today())
     f_cat = st.selectbox("Category", categories)
     f_amt = st.number_input("Amount", min_value=0.0)
@@ -167,30 +184,24 @@ elif form_type in ["Income", "Expense", "Transfer"]:
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("Save Entry ✅"):
-            new_row = [f"{f_date}", f_cat, f_amt, f_desc, form_type, "Cash", "Bank", ""]
-            worksheet.append_row(new_row)
-            st.cache_data.clear() # Save කළාම අලුත් දත්ත පේන්න Cache එක Clear කළා
-            st.query_params.clear()
-            st.rerun()
+            worksheet.append_row([str(f_date), f_cat, f_amt, f_desc, form_type, "Cash", "Bank", ""])
+            st.cache_data.clear(); st.query_params.clear(); st.rerun()
     with col2:
         if st.button("Cancel ❌"): st.query_params.clear(); st.rerun()
     with col3:
         if st.button("Home 🏠"): st.query_params.clear(); st.rerun()
 
-# --- 7. HISTORY ---
+# --- 7. HISTORY & SETTINGS (Condensed) ---
 elif form_type == "History":
-    st.markdown('<div class="main-card"><h3>📜 Transaction History</h3></div>', unsafe_allow_html=True)
+    st.markdown('<div class="premium-card"><h3>📜 History</h3></div>', unsafe_allow_html=True)
     st.dataframe(df.sort_index(ascending=False), use_container_width=True)
     if st.button("Back Home 🏠"): st.query_params.clear(); st.rerun()
 
-# --- 8. SETTINGS ---
 elif form_type == "ManageCats":
-    st.markdown('<div class="main-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
-    # (Settings UI as before)
+    st.markdown('<div class="premium-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
     if st.button("Back Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 9. FLOATING ACTION MENU ---
-# 
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
