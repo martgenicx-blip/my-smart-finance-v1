@@ -7,20 +7,29 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
 
-# --- 2. CSS (බටන් දෙක ලං කරන්න සහ UI එක පිරිසිදු කරන්න) ---
+# --- 2. 🎯 Borderless & Compact Button CSS ---
 st.markdown("""
     <style>
-    /* බටන් වල සයිස් එක පාලනය කිරීම */
+    /* බටන් වල Border සහ Padding අයින් කිරීම */
     div.stButton > button {
-        width: 100% !important;
-        height: 32px !important;
+        border: none !important;
+        background-color: transparent !important;
         padding: 0 !important;
-        font-size: 16px !important;
-        border-radius: 6px !important;
+        margin: 0 !important;
+        width: 30px !important; /* බටන් එක තවත් කුඩා කිරීම */
+        height: 30px !important;
+        font-size: 18px !important;
+        box-shadow: none !important;
     }
-    /* පේළි අතර ඉඩ අඩු කිරීම */
-    .stVerticalBlock { gap: 0.5rem !important; }
-    hr { margin: 0.5rem 0 !important; }
+    /* බටන් එක උඩට යනකොට පොඩි Hover එකක් විතරක් දාමු */
+    div.stButton > button:hover {
+        background-color: #f0f0f0 !important;
+        border-radius: 4px !important;
+    }
+    
+    /* පේළි අතර පරතරය පාලනය */
+    .stVerticalBlock { gap: 0rem !important; }
+    hr { margin: 0.3rem 0 !important; opacity: 0.1; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -51,7 +60,7 @@ edit_idx = query.get("edit")
 if not form_type and not edit_idx:
     st.title("💸 Finance Tracker")
     
-    # Action Buttons (Uda tiana tika)
+    # Action Buttons
     col1, col2, col3, col4 = st.columns(4)
     if col1.button("➕ Income"): st.query_params.update(form="Income"); st.rerun()
     if col2.button("➖ Expense"): st.query_params.update(form="Expense"); st.rerun()
@@ -60,8 +69,8 @@ if not form_type and not edit_idx:
 
     st.write("---")
     
-    # 🔥 Table Header (Ratios: 65%, 20%, 15%)
-    h1, h2, h3 = st.columns([0.65, 0.20, 0.15])
+    # 🔥 Table Header (Ratios: 70%, 20%, 10%)
+    h1, h2, h3 = st.columns([0.70, 0.20, 0.10])
     h1.write("**Item / Category**")
     h2.write("**Amount**")
     h3.write("**Actions**")
@@ -73,18 +82,19 @@ if not form_type and not edit_idx:
             row = df.loc[idx]
             color = "green" if row['Type'] == 'Income' else "red"
             
-            # පේළිය බෙදීම
-            r1, r2, r3 = st.columns([0.65, 0.20, 0.15])
+            # Row Layout
+            r1, r2, r3 = st.columns([0.70, 0.20, 0.10])
             
             with r1:
-                st.write(f"**{row['Category']}** \n*{row['Date']}*")
+                st.write(f"**{row['Category']}** \n\n <small>{row['Date']}</small>", unsafe_allow_html=True)
             
             with r2:
-                st.markdown(f"<h4 style='color:{color}; margin:0;'>{row['Amount']:,.0f}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<h4 style='color:{color}; margin:0; padding-top:5px;'>{row['Amount']:,.0f}</h4>", unsafe_allow_html=True)
             
             with r3:
-                # බටන් දෙක තවත් ලං කිරීමට මෙතන තව Columns දෙකක් හැදුවා
-                btn_col1, btn_col2 = st.columns(2)
+                # 🎯 බටන් දෙක අතර ඉතා කුඩා පරතරයක් (Gap) සහිතව තැබීම
+                # මෙතන columns 2 ක් දාලා ඒ දෙක අතර ඉඩ CSS වලින් පාලනය වෙනවා
+                btn_col1, btn_col2 = st.columns([1, 1])
                 with btn_col1:
                     if st.button("✏️", key=f"ed_{idx}"):
                         st.query_params.update(edit=idx); st.rerun()
@@ -93,11 +103,11 @@ if not form_type and not edit_idx:
                         worksheet.delete_rows(int(idx)+2); st.rerun()
             st.write("---")
 
-# --- 6. MANAGE CATEGORIES ---
+# --- 6. MANAGE CATEGORIES (Logic Unchanged) ---
 elif form_type == "ManageCats":
     st.subheader("⚙️ Manage Categories")
     new_c = st.text_input("New Category Name")
-    if st.button("Add Category"):
+    if st.button("Add Category", key="add_cat_btn"):
         if new_c: cat_sheet.append_row([new_c]); st.rerun()
     
     for c in categories:
@@ -107,13 +117,12 @@ elif form_type == "ManageCats":
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
     if st.button("Back Home"): st.query_params.clear(); st.rerun()
 
-# --- 7. HISTORY ---
+# --- 7. HISTORY & FORMS (Logic Unchanged) ---
 elif form_type == "History":
     st.subheader("📜 Full History")
     st.dataframe(df.sort_index(ascending=False), use_container_width=True)
     if st.button("Back Home"): st.query_params.clear(); st.rerun()
 
-# --- 8. ADD/EDIT FORMS ---
 elif form_type in ["Income", "Expense"] or edit_idx:
     t = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
     st.subheader(f"📝 {t} Entry")
