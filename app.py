@@ -8,80 +8,93 @@ import time
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 ULTIMATE PREMIUM UI CSS ---
+# --- 2. 🎨 MOBILE-RESPONSIVE PREMIUM UI CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8f9fc; }
+    
+    /* Global Styles */
+    html, body, [class*="css"] { 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
+        background-color: #f8f9fc; 
+    }
 
+    /* Header Styling */
     .header-wrapper {
         background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
-        padding: 50px 20px; color: white; border-radius: 0 0 40px 40px;
-        text-align: center; margin: -65px -20px 30px -20px;
-        box-shadow: 0 15px 35px rgba(0,122,255,0.25);
+        padding: 40px 15px; color: white; border-radius: 0 0 35px 35px;
+        text-align: center; margin: -65px -20px 25px -20px;
+        box-shadow: 0 10px 30px rgba(0,122,255,0.2);
     }
 
-    /* PREMIUM BALANCE CARD */
+    /* Premium Balance Card - Responsive Font Sizes */
     .premium-card {
         background: linear-gradient(145deg, #ffffff, #f0f4f8);
-        border-radius: 30px; padding: 35px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        border-radius: 25px; padding: 25px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.05);
         border: 1px solid rgba(255,255,255,0.8);
-        margin-bottom: 30px; position: relative; overflow: hidden;
+        margin-bottom: 20px;
     }
-    .balance-label { color: #8E8E93; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
-    .balance-amount { color: #1c1c1e; font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 25px; }
-    .stat-container { display: flex; gap: 20px; padding-top: 25px; border-top: 1px solid rgba(0,0,0,0.05); }
-    .stat-box { flex: 1; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.5); }
-    .stat-inc { border-left: 5px solid #34C759; }
-    .stat-exp { border-left: 5px solid #FF3B30; }
-    .stat-title { color: #8E8E93; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
-    .stat-value { font-size: 18px; font-weight: 700; }
-
-    /* Buttons */
-    .grid-btn {
-        background: white; border-radius: 20px; padding: 20px; 
-        text-align: center; text-decoration: none !important; 
-        color: #1c1c1e !important; font-weight: 700; 
-        border: 1px solid #f1f3f5; display: block; transition: all 0.3s ease;
+    .balance-label { color: #8E8E93; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .balance-amount { 
+        color: #1c1c1e; font-size: calc(24px + 1.5vw); font-weight: 800; 
+        letter-spacing: -1px; margin: 10px 0 20px 0; 
     }
-    .grid-btn:hover { border-color: #007AFF; transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,122,255,0.1); }
     
-    div.stButton > button { border-radius: 12px !important; transition: 0.3s !important; }
+    .stat-container { display: flex; gap: 15px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px; }
+    .stat-box { flex: 1; padding: 12px; border-radius: 15px; background: rgba(255,255,255,0.6); border-left: 4px solid #ddd; }
+    .stat-inc { border-left-color: #34C759; }
+    .stat-exp { border-left-color: #FF3B30; }
+    .stat-title { color: #8E8E93; font-size: 11px; font-weight: 600; }
+    .stat-value { font-size: 16px; font-weight: 700; }
 
-    /* 🔥 IMPROVED ACTIVITY CARD SPACING */
+    /* Action Grid - Responsive 2 columns */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px; margin-bottom: 25px;
+    }
+    .grid-btn {
+        background: white; border-radius: 18px; padding: 15px; 
+        text-align: center; text-decoration: none !important; 
+        color: #1c1c1e !important; font-weight: 700; font-size: 14px;
+        border: 1px solid #f1f3f5; transition: 0.3s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    }
+    .grid-btn:hover { border-color: #007AFF; transform: translateY(-3px); }
+
+    /* Recent Activity - Mobile Optimized */
     .activity-container {
-        background: white; 
-        border-radius: 20px; 
-        margin-bottom: 15px; /* වැඩිපුර ඉඩක් දුන්නා */
-        display: flex; align-items: center; justify-content: space-between;
-        transition: 0.3s ease; 
-        border: 1px solid rgba(0,0,0,0.03);
-        overflow: hidden; 
-        position: relative; 
-        padding: 18px 15px 18px 28px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03); /* ලස්සන Soft Shadow එකක් */
+        background: white; border-radius: 18px; margin-bottom: 12px;
+        padding: 15px 15px 15px 22px; position: relative;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f8f9fa;
     }
-    .activity-container:hover {
-        transform: scale(1.01);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-    }
-    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; }
+    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* FAB */
-    .fab-wrapper { position: fixed; bottom: 35px; right: 30px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 15px; }
+    /* FAB - Better Positioning for Mobile */
+    .fab-wrapper { position: fixed; bottom: 25px; right: 20px; z-index: 9999; }
     .fab-main { 
-        width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-        border-radius: 22px; display: flex; justify-content: center; align-items: center; 
-        color: white; font-size: 32px; box-shadow: 0 12px 25px rgba(0,122,255,0.4); cursor: pointer;
+        width: 60px; height: 60px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+        border-radius: 20px; display: flex; justify-content: center; align-items: center; 
+        color: white; font-size: 28px; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
     }
-    .fab-list { display: none; flex-direction: column; gap: 12px; align-items: flex-end; }
+    .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-item { display: flex; align-items: center; gap: 12px; text-decoration: none !important; }
-    .fab-label { background: white; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; color: #1c1c1e; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-    .fab-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
+    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
+    .fab-label { background: white; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #1c1c1e; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .fab-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; }
+
+    /* Hide standard streamlit elements for cleaner look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Media Query for very small screens */
+    @media (max-width: 480px) {
+        .stat-container { flex-direction: column; }
+        .balance-amount { font-size: 28px; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -107,12 +120,12 @@ try:
 
     df, categories, opening_bal = load_data()
 except Exception as e:
-    st.error(f"Error: {e}"); st.stop()
+    st.error("Connection lost. Please refresh."); st.stop()
 
 q = st.query_params
 form_type, edit_idx = q.get("form"), q.get("edit")
 
-st.markdown('<div class="header-wrapper"><h1>FinanceFlow</h1><p style="opacity:0.8">Smart Wealth Tracker</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="header-wrapper"><h1>FinanceFlow</h1><p style="opacity:0.8; font-size:14px;">Smart Wealth Tracker</p></div>', unsafe_allow_html=True)
 
 # --- 5. HOME PAGE ---
 if not form_type and not edit_idx:
@@ -138,55 +151,63 @@ if not form_type and not edit_idx:
             </div>
         """, unsafe_allow_html=True)
 
-    # Action Grid
-    st.markdown('<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px; margin-bottom:30px;">'
-                '<a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a>'
-                '<a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a>'
-                '<a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a>'
-                '<a href="./?form=History" target="_self" class="grid-btn">📜 History</a>'
-                '</div>', unsafe_allow_html=True)
+    # Responsive Action Grid
+    st.markdown("""
+        <div class="grid-container">
+            <a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a>
+            <a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a>
+            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a>
+            <a href="./?form=History" target="_self" class="grid-btn">📜 History</a>
+        </div>
+    """, unsafe_allow_html=True)
 
     if not df.empty:
-        st.markdown('<h3 style="font-size:20px; font-weight:700; margin: 10px 0 20px 0;">Recent Activity</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px; color:#1c1c1e;">Recent Activity</h3>', unsafe_allow_html=True)
         recent_items = df.tail(10).iloc[::-1]
         for idx_row, row in recent_items.iterrows():
             v_line_color = "bg-income" if row['Type'] == 'Income' else "bg-expense"
+            
+            # Use Streamlit columns for buttons to ensure they work
             st.markdown(f'<div class="activity-container"><div class="v-line {v_line_color}"></div>', unsafe_allow_html=True)
-            c1, c2, c3, c4 = st.columns([0.5, 0.25, 0.12, 0.12])
-            with c1: st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
-            with c2: st.markdown(f"<div style='font-weight:800; text-align:right; margin-top:8px; font-size:16px;'>{row['Amount']:,.0f}</div>", unsafe_allow_html=True)
-            with c3:
-                if st.button("📝", key=f"edit_{idx_row}"):
-                    st.query_params.update(edit=idx_row)
-                    st.rerun()
-            with c4:
-                if st.button("🗑️", key=f"del_{idx_row}"):
-                    worksheet.delete_rows(int(idx_row)+2)
-                    st.cache_data.clear(); st.rerun()
+            col_info, col_amt, col_btns = st.columns([0.5, 0.25, 0.25])
+            with col_info:
+                st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
+            with col_amt:
+                st.markdown(f"<div style='font-weight:700; text-align:right; margin-top:5px;'>{row['Amount']:,.0f}</div>", unsafe_allow_html=True)
+            with col_btns:
+                sub_c1, sub_c2 = st.columns(2)
+                with sub_c1:
+                    if st.button("📝", key=f"ed_{idx_row}"):
+                        st.query_params.update(edit=idx_row); st.rerun()
+                with sub_c2:
+                    if st.button("🗑️", key=f"dl_{idx_row}"):
+                        worksheet.delete_rows(int(idx_row)+2)
+                        st.cache_data.clear(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS (Add & Edit - Remains Same) ---
+# --- 6. FORMS (Responsive) ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
-    t = form_type if not is_edit else row_data['Type']
-    st.markdown(f'<div class="premium-card"><h3>📝 {"Edit" if is_edit else "Add"} {t}</h3></div>', unsafe_allow_html=True)
-    f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
-    f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
-    f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
-    f_desc = st.text_input("Note", value=row_data['Note'] if is_edit else "")
-    st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("Update ✅" if is_edit else "Save Entry ✅"):
-            new_row = [str(f_date), f_cat, f_amt, f_desc, t, "Cash", "Bank", ""]
-            if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
-            else: worksheet.append_row(new_row)
+    title = form_type if not is_edit else row_data['Type']
+    
+    st.markdown(f'<div class="premium-card"><h3 style="margin:0; font-size:18px;">📝 {title}</h3></div>', unsafe_allow_html=True)
+    
+    with st.container():
+        f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
+        f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
+        f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
+        f_desc = st.text_input("Note", value=row_data['Note'] if is_edit else "")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Confirm ✅", use_container_width=True):
+            new_data = [str(f_date), f_cat, f_amt, f_desc, title, "Cash", "Bank", ""]
+            if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_data])
+            else: worksheet.append_row(new_data)
             st.cache_data.clear(); st.query_params.clear(); st.rerun()
-    with col2:
-        if st.button("Cancel ❌"): st.query_params.clear(); st.rerun()
-    with col3:
-        if st.button("Home 🏠"): st.query_params.clear(); st.rerun()
+        
+        if st.button("Go Back ⬅️", use_container_width=True):
+            st.query_params.clear(); st.rerun()
 
 # --- 9. FLOATING ACTION MENU ---
 st.markdown("""
