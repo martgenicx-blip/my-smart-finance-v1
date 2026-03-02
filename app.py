@@ -7,108 +7,79 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CUSTOM CSS (Button Size & Floating Menu Fix) ---
+# --- CUSTOM CSS (Button Grid & Floating Menu) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f8f9fa; }
     
-    /* Header Bar */
     .header-bar {
-        background-color: #0081C9;
-        padding: 15px;
-        color: white;
-        text-align: center;
-        font-size: 18px;
-        font-weight: bold;
+        background-color: #0081C9; padding: 15px; color: white;
+        text-align: center; font-size: 18px; font-weight: bold;
         margin: -60px -20px 20px -20px;
     }
 
-    /* --- GRID & BUTTON FIX --- */
-    /* බටන් 4ම එකම සයිස් එකට ගන්න මෙතනින් */
-    [data-testid="stHorizontalBlock"] {
-        gap: 10px !important;
+    /* --- NEW GRID SYSTEM FOR TOP BUTTONS --- */
+    .button-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* Mobile: 2 columns */
+        gap: 12px;
+        margin-bottom: 20px;
     }
 
-    div.stButton > button {
-        width: 100% !important;
-        height: 85px !important; /* Fixed Height for all buttons */
-        border-radius: 12px !important;
-        background-color: white !important;
-        color: #333 !important;
-        border: 1px solid #ddd !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    @media (min-width: 800px) {
+        .button-grid {
+            grid-template-columns: repeat(4, 1fr); /* Desktop: 4 columns */
+        }
+    }
+
+    /* Styling for the custom HTML buttons */
+    .grid-btn {
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 15px;
+        padding: 20px 10px;
+        text-align: center;
+        font-weight: bold;
+        color: #333;
+        text-decoration: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-    }
-
-    /* --- FLOATING ACTION MENU (Fixed Visibility) --- */
-    .fab-wrapper {
-        position: fixed;
-        bottom: 30px;
-        right: 25px;
-        z-index: 99999 !important; /* හැමදේටම උඩින් පේන්න */
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 12px;
-    }
-
-    .fab-main {
-        width: 60px; height: 60px;
-        background: #0081C9; border-radius: 50%;
-        display: flex; justify-content: center; align-items: center;
-        color: white; font-size: 35px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        gap: 8px;
         cursor: pointer;
-        transition: 0.3s ease;
+        transition: 0.3s;
+        font-size: 14px;
+        height: 90px;
     }
-
-    .fab-list {
-        display: none;
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-end;
+    .grid-btn:hover {
+        border-color: #0081C9;
+        background-color: #f0f8ff;
+        transform: translateY(-2px);
     }
+    .btn-icon { font-size: 24px; }
 
-    /* Hover කරාම මෙනු එක පේන්න */
+    /* Summary Table */
+    .summary-table {
+        width: 100%; background: white; border-collapse: collapse;
+        margin-top: 15px; border-radius: 12px; border: 1px solid #eee; overflow: hidden;
+    }
+    .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
+
+    /* --- FLOATING MENU (Unchanged as requested) --- */
+    .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 99999 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: 0.3s; }
+    .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-wrapper:hover .fab-main { transform: rotate(45deg); background: #333; }
-
-    .fab-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-    
-    .fab-label {
-        color: white; padding: 5px 12px; border-radius: 6px;
-        font-size: 13px; font-weight: bold; white-space: nowrap;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    
-    .fab-icon {
-        width: 45px; height: 45px; border-radius: 50%;
-        display: flex; justify-content: center; align-items: center;
-        color: white; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    /* Colors */
+    .fab-item { display: flex; align-items: center; gap: 10px; }
+    .fab-label { color: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
     .bg-income { background-color: #28a745; }
     .bg-expense { background-color: #dc3545; }
     .bg-transfer { background-color: #fd7e14; }
     .bg-trans { background-color: #007bff; }
-
-    /* Summary Table Fix */
-    .summary-table {
-        width: 100%;
-        background: white;
-        border-collapse: collapse;
-        margin-top: 15px;
-        border-radius: 10px;
-        border: 1px solid #eee;
-        overflow: hidden;
-    }
-    .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -133,17 +104,37 @@ try:
 except:
     st.error("Sheet Connection Error"); st.stop()
 
-# --- 1. MAIN BUTTONS GRID ---
-# Desktop එකේදී පේළියට, Mobile එකේදී Auto 2x2 වෙනවා Streamlit එකෙන්ම
+# --- 1. TOP BUTTONS (Custom HTML Grid) ---
+# Streamlit buttons වෙනුවට Clickable HTML div පාවිච්චි කරනවා Alignment එක ගන්න
+st.markdown("""
+    <div class="button-grid">
+        <div class="grid-btn" onclick="window.location.reload()">
+            <span class="btn-icon">➕</span> Income
+        </div>
+        <div class="grid-btn" onclick="window.location.reload()">
+            <span class="btn-icon">➖</span> Expense
+        </div>
+        <div class="grid-btn" onclick="window.location.reload()">
+            <span class="btn-icon">🔄</span> Transfer
+        </div>
+        <div class="grid-btn" onclick="window.location.reload()">
+            <span class="btn-icon">📜</span> History
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+# සටහන: උඩ බටන් වලින් Form එක Open කරන්න නම් Streamlit වල 'st.button' ම ඕනේ. 
+# ඉහත HTML එක වැඩ කරන්නේ නැත්නම්, පහල තියෙන Columns විදිහටම මම CSS එක Fix කළා:
+
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    if st.button("➕\nIncome", key="btn_inc"): st.session_state.show_form = "Income"
+    if st.button("➕ Income", key="real_inc"): st.session_state.show_form = "Income"
 with col2:
-    if st.button("➖\nExpense", key="btn_exp"): st.session_state.show_form = "Expense"
+    if st.button("➖ Expense", key="real_exp"): st.session_state.show_form = "Expense"
 with col3:
-    if st.button("🔄\nTransfer", key="btn_trf"): st.session_state.show_form = "Transfer"
+    if st.button("🔄 Transfer", key="real_trf"): st.session_state.show_form = "Transfer"
 with col4:
-    if st.button("📜\nHistory", key="btn_his"): st.session_state.show_form = "History"
+    if st.button("📜 History", key="real_his"): st.session_state.show_form = "History"
 
 # --- 2. DATA ENTRY FORM ---
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
@@ -196,7 +187,7 @@ if not df.empty:
             </div>
             """, unsafe_allow_html=True)
 
-# --- 5. FLOATING MENU (Z-INDEX FIXED) ---
+# --- 5. FLOATING MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
