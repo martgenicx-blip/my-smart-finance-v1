@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles (Ultra Mobile Optimized) ---
+# --- 2. CSS Styles ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -20,7 +20,6 @@ st.markdown("""
         margin: -60px -20px 25px -20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* Summary Card */
     .main-summary { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .stat-box { padding: 15px; border-radius: 15px; text-align: center; }
@@ -31,7 +30,6 @@ st.markdown("""
     .stat-value { font-size: 18px; font-weight: 700; }
     .balance-val { color: #0081C9; font-size: 22px; }
 
-    /* Action Grid */
     .custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
     .grid-item {
         background: white; border: 1px solid #eee; border-radius: 15px; height: 85px; 
@@ -40,29 +38,23 @@ st.markdown("""
         text-decoration: none !important; transition: 0.2s;
     }
 
-    /* 🔥 Transaction Cards - Inline Button Fix */
     .trans-card { 
         background: white; padding: 12px 15px; border-radius: 15px; 
         display: flex; justify-content: space-between; align-items: center; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 10px; border-left: 6px solid #ccc;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03); border-left: 6px solid #ccc;
     }
     .trans-income { border-left-color: #28a745; }
     .trans-expense { border-left-color: #dc3545; }
     
-    /* Button container styling */
-    .inline-btns {
-        display: flex;
-        gap: 10px;
-        align-items: center;
+    /* Inline Buttons Fix */
+    .stButton > button {
+        width: 100% !important;
+        padding: 5px !important;
+        border-radius: 10px !important;
     }
 
-    /* FAB Menu */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-    .fab-main { 
-        width: 60px; height: 60px; background: #0081C9; border-radius: 50%; 
-        display: flex; justify-content: center; align-items: center; color: white; 
-        font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer;
-    }
+    .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer; }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
@@ -92,8 +84,14 @@ except:
 # --- 4. Header ---
 st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
 
-# --- 5. Summary & Action Grid ---
-if not df.empty and not query_params:
+# --- 5. Routing & Query Params (Fixing the Error) ---
+query = st.query_params
+form_type = query.get("form")
+edit_idx = query.get("edit")
+
+# --- 6. Summary & Action Grid ---
+# මෙතන 'query' පාවිච්චි කළා වැරැද්ද හදන්න
+if not df.empty and not form_type and not edit_idx:
     t_inc = df[df['Type'] == 'Income']['Amount'].sum()
     t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
     bal = t_inc - t_exp
@@ -111,20 +109,16 @@ if not df.empty and not query_params:
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown("""
-    <div class="custom-grid">
-        <a href="./?form=Income" target="_self" class="grid-item"><span>💰</span> Income</a>
-        <a href="./?form=Expense" target="_self" class="grid-item"><span>💸</span> Expense</a>
-        <a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
-        <a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
-    </div>
-""", unsafe_allow_html=True)
+    st.markdown("""
+        <div class="custom-grid">
+            <a href="./?form=Income" target="_self" class="grid-item"><span>💰</span> Income</a>
+            <a href="./?form=Expense" target="_self" class="grid-item"><span>💸</span> Expense</a>
+            <a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
+            <a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- 6. Routing & Forms ---
-query = st.query_params
-form_type = query.get("form")
-edit_idx = query.get("edit")
-
+# --- 7. Forms ---
 if form_type == "ManageCats":
     st.subheader("⚙️ Manage Categories")
     new_c = st.text_input("New Category")
@@ -153,37 +147,35 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
             else: worksheet.append_row(row_data)
             st.query_params.clear(); st.rerun()
 
-# --- 7. Recent Transactions (Clean Inline UI) ---
+# --- 8. Recent Activity (Inline Buttons Fix) ---
 if not form_type and not edit_idx and not df.empty:
     st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
         is_inc = row['Type'] == 'Income'
         
-        # 🎯 Flexbox Container used for Data + Buttons
-        col_main, col_btn_group = st.columns([0.7, 0.3])
-        
-        with col_main:
-            st.markdown(f"""
-                <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
-                    <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
-                    <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'};">
-                        {'+' if is_inc else '-'}{row['Amount']:,.0f}
-                    </div>
+        # ලස්සනට Card එක සහ බටන් ටික Inline පේළියට
+        st.markdown(f"""
+            <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
+                <div style="flex-grow: 1;">
+                    <b>{row['Category']}</b><br><small>{row['Date']}</small>
                 </div>
-            """, unsafe_allow_html=True)
-            
-        with col_btn_group:
-            # බටන් දෙක පේළියට තැබීම සඳහා කුඩා කොලම් දෙකක් Card එක අසලම
-            b1, b2 = st.columns(2)
-            if b1.button("✏️", key=f"ed_{idx}"):
-                st.query_params.update(edit=idx)
-                st.rerun()
-            if b2.button("🗑️", key=f"dl_{idx}"):
-                worksheet.delete_rows(int(idx)+2)
-                st.rerun()
+                <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'}; margin-right: 15px;">
+                    {'+' if is_inc else '-'}{row['Amount']:,.0f}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # 🎯 බටන් දෙක Inline (එකම පේළියක)
+        c1, c2, c3 = st.columns([0.6, 0.2, 0.2])
+        with c2:
+            if st.button("✏️", key=f"ed_{idx}"):
+                st.query_params.update(edit=idx); st.rerun()
+        with c3:
+            if st.button("🗑️", key=f"dl_{idx}"):
+                worksheet.delete_rows(int(idx)+2); st.rerun()
 
-# --- 8. Floating Menu ---
+# --- 9. Floating Menu ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
