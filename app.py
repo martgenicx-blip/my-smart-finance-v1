@@ -5,7 +5,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # --- 1. Page Config ---
-st.set_page_config(page_title="Income Expense Tracker", layout="wide")
+st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
 # --- 2. CSS Styles ---
 st.markdown("""
@@ -55,6 +55,9 @@ st.markdown("""
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
     .fab-label { background: white; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #333; }
     .fab-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; }
+    
+    /* Category specific styles */
+    .cat-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 5px 15px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #eee; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -69,23 +72,23 @@ try:
     client = gspread.authorize(creds)
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet = sh.worksheet("Sheet1")
-    cat_sheet = sh.worksheet("Categories")
+    
+    try:
+        cat_sheet = sh.worksheet("Categories")
+    except:
+        cat_sheet = sh.add_worksheet(title="Categories", rows="100", cols="2")
+        cat_sheet.append_row(["CategoryName"])
 
-    # Categories කියවීම සහ Defaults එකතු කිරීම
-    existing_cats = [row['CategoryName'] for row in cat_sheet.get_all_records()]
+    # Double නොවෙන්න Unique ලැයිස්තුවක් හදාගන්නවා
+    all_cat_data = cat_sheet.get_all_records()
+    categories = sorted(list(set([row['CategoryName'] for row in all_cat_data if row['CategoryName']])))
+    
+    # Defaults (නැතිනම් පමණක් එක් වේ)
     income_defaults = ["Salary", "House Rental"]
     expense_defaults = ["Food", "Fuel", "Baby Care", "Toys", "Snacks", "Grocery", "SLT Bill", "Water Bill", "CEB Bill"]
-    all_defaults = income_defaults + expense_defaults
     
-    for cat in all_defaults:
-        if cat not in existing_cats:
-            cat_sheet.append_row([cat])
-            existing_cats.append(cat)
-
-    categories = existing_cats
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    
     if not df.empty:
         df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
 except Exception as e:
@@ -96,7 +99,7 @@ st.markdown(f"""
     <div class="custom-grid">
         <a href="./?form=Income" target="_self" class="grid-item"><span>➕</span> Income</a>
         <a href="./?form=Expense" target="_self" class="grid-item"><span>➖</span> Expense</a>
-        <a href="./?form=Transfer" target="_self" class="grid-item"><span>🔄</span> Transfer</a>
+        <a href="./?form=ManageCats" target="_self" class="grid-item"><span>⚙️</span> Categories</a>
         <a href="./?form=History" target="_self" class="grid-item"><span>📜</span> History</a>
     </div>
 """, unsafe_allow_html=True)
@@ -105,59 +108,66 @@ query_params = st.query_params
 query_form = query_params.get("form")
 edit_id = query_params.get("edit")
 
-# --- 6. DATA ENTRY / EDIT FORM ---
-if query_form in ["Income", "Expense", "Transfer"] or edit_id:
-    # 🎯 Filter categories (මෙතනයි වෙනස තියෙන්නේ)
+# --- 6. CATEGORY MANAGEMENT (NEW FEATURE) ---
+if query_form == "ManageCats":
+    st.subheader("⚙️ Manage Categories")
+    
+    # Add New Category Box
+    with st.container():
+        new_cat_name = st.text_input("Add New Category")
+        if st.button("➕ Add Category", type="primary"):
+            if new_cat_name and new_cat_name not in categories:
+                cat_sheet.append_row([new_cat_name])
+                st.success(f"{new_cat_name} Added!")
+                st.rerun()
+            else:
+                st.warning("Category already exists or empty!")
+
+    st.write("---")
+    st.write("Current Categories (Click ➖ to remove)")
+    for c in categories:
+        col_name, col_btn = st.columns([0.85, 0.15])
+        col_name.markdown(f'<div class="cat-row">{c}</div>', unsafe_allow_html=True)
+        if col_btn.button("➖", key=f"del_cat_{c}", help="Delete Category"):
+            # Sheet එකේ row එක හොයාගෙන මකනවා
+            try:
+                cell = cat_sheet.find(c)
+                cat_sheet.delete_rows(cell.row)
+                st.rerun()
+            except: pass
+
+# --- 7. DATA ENTRY / EDIT FORM ---
+elif query_form in ["Income", "Expense", "Transfer"] or edit_id:
     current_type = query_form
-    if edit_id:
-        current_type = df.loc[int(edit_id)]['Type']
+    if edit_id: current_type = df.loc[int(edit_id)]['Type']
     
     if current_type == "Income":
         show_cats = [c for c in categories if c in ["Salary", "House Rental"]]
     else:
-        # Expense වලට Income ඒවා නැතුව අනිත් ඔක්කොම වැටෙනවා
         show_cats = [c for c in categories if c not in ["Salary", "House Rental"]]
 
-    title = f"Edit Record" if edit_id else f"New {query_form}"
-    st.markdown(f"### 📝 {title}")
+    st.markdown(f"### 📝 {'Edit Record' if edit_id else 'New ' + query_form}")
     
     default_vals = {"Date": date.today(), "Category": show_cats[0] if show_cats else "General", "Amount": 0.0, "Description": "", "Note": "", "Type": current_type}
-    
     if edit_id:
-        row_idx = int(edit_id)
-        target_row = df.loc[row_idx]
-        try:
-            default_vals["Date"] = datetime.strptime(target_row['Date'].split(' ')[0], '%Y-%m-%d').date()
-        except: pass
-        default_vals["Category"] = target_row['Category']
-        default_vals["Amount"] = float(target_row['Amount'])
-        default_vals["Description"] = target_row.get('Description', '')
-        default_vals["Note"] = target_row.get('Note', '')
-        default_vals["Type"] = target_row['Type']
+        row_data = df.loc[int(edit_id)]
+        default_vals.update({"Category": row_data['Category'], "Amount": float(row_data['Amount']), "Description": row_data.get('Description', ''), "Note": row_data.get('Note', ''), "Type": row_data['Type']})
 
-    with st.form("entry_form", clear_on_submit=True):
+    with st.form("entry_form"):
         f_date = st.date_input("Date", default_vals["Date"])
-        # Selectbox එකේ පෙන්වන්නේ filter කරපු list එක විතරයි
         f_cat = st.selectbox("Category", show_cats, index=show_cats.index(default_vals["Category"]) if default_vals["Category"] in show_cats else 0)
-        f_amount = st.number_input("Amount (LKR)", value=default_vals["Amount"], step=10.0)
+        f_amount = st.number_input("Amount (LKR)", value=default_vals["Amount"])
         f_desc = st.text_input("Description", value=default_vals["Description"])
         f_note = st.text_area("Note", value=default_vals["Note"])
         
-        if st.form_submit_button("Save Changes ✅" if edit_id else "Save Record ✅"):
-            if f_amount > 0:
-                ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-                new_data = [ts, f_cat, f_amount, f_desc, default_vals["Type"], "Cash", "Bank", f_note]
-                
-                if edit_id:
-                    worksheet.update(f'A{int(edit_id)+2}:H{int(edit_id)+2}', [new_data])
-                    st.success("Updated Successfully!")
-                else:
-                    worksheet.append_row(new_data)
-                
-                st.query_params.clear()
-                st.rerun()
+        if st.form_submit_button("Save ✅"):
+            ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
+            new_row = [ts, f_cat, f_amount, f_desc, default_vals["Type"], "Cash", "Bank", f_note]
+            if edit_id: worksheet.update(f'A{int(edit_id)+2}:H{int(edit_id)+2}', [new_row])
+            else: worksheet.append_row(new_row)
+            st.query_params.clear(); st.rerun()
 
-# --- 7. Summary Dashboard ---
+# --- 8. Dashboard & Recent Transactions ( settings unchanged ) ---
 if not df.empty:
     total_income = df[df['Type'] == 'Income']['Amount'].sum()
     total_expense = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -175,48 +185,26 @@ if not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 8. Recent Transactions ---
-st.write("<b>Recent Transactions</b>", unsafe_allow_html=True)
-if not df.empty:
-    latest_indices = df.index[-10:][::-1]
-    for idx in latest_indices:
+    st.write("<b>Recent Transactions</b>")
+    for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
-        card_class = "trans-income" if row['Type'] == "Income" else "trans-expense"
-        amount_color = "#28a745" if row['Type'] == "Income" else "#dc3545"
-        
         col_info, col_actions = st.columns([0.75, 0.25])
         with col_info:
             st.markdown(f"""
-                <div class="trans-card {card_class}">
-                    <div>
-                        <div style="font-size:10px; color:gray;">{row['Date']}</div>
-                        <div style="font-weight:bold; font-size:13px;">{row['Category']}</div>
-                        <div style="font-size:11px; color:#666;">{row.get('Description', '')}</div>
-                    </div>
-                    <div style="color:{amount_color}; font-weight:bold; font-size:15px; text-align:right;">
-                        {"+" if row['Type'] == "Income" else "-"}{row['Amount']:,.0f}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
+                <div class="trans-card {'trans-income' if row['Type'] == 'Income' else 'trans-expense'}">
+                    <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
+                    <div style="font-weight:bold;">{'+' if row['Type'] == 'Income' else '-'}{row['Amount']:,.0f}</div>
+                </div>""", unsafe_allow_html=True)
         with col_actions:
-            c_edit, c_del = st.columns(2)
-            with c_edit:
-                if st.button("✏️", key=f"ed_{idx}"):
-                    st.query_params.update(edit=idx)
-                    st.rerun()
-            with c_del:
-                if st.button("🗑️", key=f"de_{idx}"):
-                    worksheet.delete_rows(int(idx) + 2)
-                    st.rerun()
-        st.markdown('<div style="margin-bottom: 8px;"></div>', unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            if c1.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
+            if c2.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx) + 2); st.rerun()
 
 # --- 9. Floating Menu ---
 st.markdown(f"""
     <div class="fab-wrapper">
         <div class="fab-list">
-            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a>
-            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a>
+            <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a>
             <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a>
             <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a>
         </div>
