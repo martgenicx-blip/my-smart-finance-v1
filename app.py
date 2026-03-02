@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 ULTIMATE PREMIUM UI CSS ---
+# --- 2. 🎨 ULTIMATE PREMIUM UI CSS (With Mouse Over Effects) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
@@ -28,7 +28,23 @@ st.markdown("""
         border: 1px solid #f1f3f5;
     }
 
-    /* Vertical Line Styling */
+    /* 🔥 Main Grid Buttons Hover Effect */
+    .grid-btn {
+        background: white; border-radius: 20px; padding: 20px; 
+        text-align: center; text-decoration: none !important; 
+        color: #1c1c1e !important; font-weight: 700; 
+        border: 1px solid #f1f3f5; display: block;
+        transition: all 0.3s ease-in-out;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .grid-btn:hover {
+        border-color: #007AFF;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,122,255,0.1);
+        background-color: #fbfcfe;
+    }
+
+    /* Activity Container Hover */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         display: flex; align-items: center; justify-content: space-between;
@@ -36,26 +52,39 @@ st.markdown("""
         overflow: hidden; position: relative;
         padding: 15px 20px 15px 28px;
     }
+    .activity-container:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+    }
     .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* Button Styling */
+    /* 🔥 Action Buttons Hover (Save, Home, etc.) */
     div.stButton > button {
         border-radius: 15px !important; width: 100% !important; height: 50px !important;
-        font-weight: 700 !important; transition: 0.3s !important; border: none !important;
+        font-weight: 700 !important; transition: all 0.3s ease !important; border: none !important;
     }
 
-    /* Primary Buttons (Save, Update, Add) */
+    /* Save Button Hover */
     div.stButton > button:contains("Save"), div.stButton > button:contains("Add"), div.stButton > button:contains("Update") {
         background-color: #007AFF !important; color: white !important;
-        box-shadow: 0 4px 15px rgba(0,122,255,0.2) !important;
+    }
+    div.stButton > button:contains("Save"):hover, div.stButton > button:contains("Add"):hover, div.stButton > button:contains("Update"):hover {
+        background-color: #0056b3 !important;
+        box-shadow: 0 6px 20px rgba(0,86,179,0.4) !important;
+        transform: scale(1.02);
     }
 
-    /* Secondary/Home Buttons (Cancel, Back, Home) */
+    /* Home/Cancel Button Hover */
     div.stButton > button:contains("Cancel"), div.stButton > button:contains("Back"), div.stButton > button:contains("Home") {
         background-color: #F2F2F7 !important; color: #1C1C1E !important;
         border: 1px solid #E5E5EA !important;
+    }
+    div.stButton > button:contains("Cancel"):hover, div.stButton > button:contains("Back"):hover, div.stButton > button:contains("Home"):hover {
+        background-color: #e5e5ea !important;
+        border-color: #d1d1d6 !important;
+        transform: scale(1.02);
     }
 
     /* Floating Menu (+) */
@@ -63,13 +92,13 @@ st.markdown("""
     .fab-main { 
         width: 60px; height: 60px; background: #007AFF; border-radius: 20px; 
         display: flex; justify-content: center; align-items: center; color: white; 
-        font-size: 30px; box-shadow: 0 10px 25px rgba(0,122,255,0.4); cursor: pointer;
+        font-size: 30px; box-shadow: 0 10px 25px rgba(0,122,255,0.4); cursor: pointer; transition: 0.3s;
     }
+    .fab-main:hover { transform: rotate(90deg) scale(1.1); }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
     .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
-    .fab-label { background: white; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: #333; }
-    .fab-icon { width: 45px; height: 45px; border-radius: 15px; display: flex; justify-content: center; align-items: center; color: white; }
+    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; transition: 0.2s; }
+    .fab-item:hover { transform: translateX(-5px); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -111,12 +140,12 @@ if not form_type and not edit_idx:
             </div>
         """, unsafe_allow_html=True)
 
-    # Action Grid
+    # Action Grid with CSS Class
     st.markdown('<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:30px;">'
-                '<a href="./?form=Income" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">💰 Income</a>'
-                '<a href="./?form=Expense" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">💸 Expense</a>'
-                '<a href="./?form=Transfer" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">🔄 Transfer</a>'
-                '<a href="./?form=History" target="_self" style="background:white; border-radius:20px; padding:20px; text-align:center; text-decoration:none; color:#1c1c1e; font-weight:700; border:1px solid #f1f3f5;">📜 History</a>'
+                '<a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a>'
+                '<a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a>'
+                '<a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a>'
+                '<a href="./?form=History" target="_self" class="grid-btn">📜 History</a>'
                 '</div>', unsafe_allow_html=True)
 
     if not df.empty:
@@ -161,19 +190,15 @@ elif form_type == "ManageCats":
     st.markdown('<div class="main-card"><h3>⚙️ Settings</h3></div>', unsafe_allow_html=True)
     new_ob = st.number_input("Opening Balance", value=opening_bal)
     if st.button("Update Balance 💰"): cat_sheet.update_acell('B1', new_ob); st.rerun()
-    
     st.markdown("#### Categories")
     new_cat = st.text_input("New Category")
     if st.button("Add Category ➕"):
         if new_cat: cat_sheet.append_row([new_cat]); st.rerun()
-    
     for c in categories:
         col1, col2 = st.columns([0.85, 0.15])
         col1.markdown(f"<div style='padding:12px; background:#f8f9fa; border-radius:12px; margin-bottom:5px;'>{c}</div>", unsafe_allow_html=True)
         if col2.button("❌", key=f"del_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
-            
-    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("Back to Home 🏠"): st.query_params.clear(); st.rerun()
 
 # --- 8. HISTORY ---
