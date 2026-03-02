@@ -24,51 +24,33 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,0,0,0.05); margin-bottom: 25px;
     }
 
-    /* 🔥 IMPROVED GRID BUTTONS WITH SMOOTH HOVER */
-    .grid-container { 
-        display: grid; 
-        grid-template-columns: repeat(2, 1fr); 
-        gap: 15px; 
-        margin-bottom: 30px; 
-    }
+    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
     .grid-btn {
-        background: #ffffff; 
-        border-radius: 20px; 
-        padding: 22px 15px; 
-        text-align: center;
-        text-decoration: none !important; 
-        color: #1c1c1e !important; 
-        font-weight: 700; 
-        font-size: 16px;
-        border: 2px solid #f1f3f5; 
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); /* Smooth movement */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        background: #ffffff; border-radius: 20px; padding: 22px 15px; text-align: center;
+        text-decoration: none !important; color: #1c1c1e !important; font-weight: 700; font-size: 16px;
+        border: 2px solid #f1f3f5; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    
-    /* Hover Effect */
     .grid-btn:hover {
-        transform: translateY(-8px); /* Moves up */
-        border-color: #007AFF; /* Blue border */
-        box-shadow: 0 12px 24px rgba(0,122,255,0.15); /* Soft blue shadow */
-        background-color: #ffffff;
+        transform: translateY(-8px); border-color: #007AFF;
+        box-shadow: 0 12px 24px rgba(0,122,255,0.15);
     }
 
-    /* Activity Cards */
+    /* CLEAN ACTIVITY CARDS (NO BUTTONS) */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
-        padding: 15px 15px 15px 22px; position: relative;
-        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 20px 18px 28px; position: relative;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f8f9fa;
+        display: flex; justify-content: space-between; align-items: center;
     }
     .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: 6px 0 0 6px; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    [data-testid="column"] { display: flex; align-items: center; justify-content: flex-end; gap: 8px !important; }
+    /* HISTORY TABLE EDIT/DELETE STYLING */
+    .history-table-header { font-weight: 700; color: #8e8e93; border-bottom: 1px solid #f1f3f5; padding-bottom: 10px; margin-bottom: 10px; }
+    
+    [data-testid="column"] { display: flex; align-items: center; }
 
     /* FAB */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; }
@@ -85,7 +67,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. Data Connection (Same as before) ---
+# --- 3. Data Connection ---
 @st.cache_resource
 def get_gsheet_client():
     creds = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -96,7 +78,7 @@ try:
     sh = client.open_by_key("1g77Wb3-mZij0tKyKFmz46YXHD8VN-gazQ0dUwhTUpD8")
     worksheet, cat_sheet = sh.worksheet("Sheet1"), sh.worksheet("Categories")
 
-    @st.cache_data(ttl=60)
+    @st.cache_data(ttl=30)
     def load_data():
         df_all = pd.DataFrame(worksheet.get_all_records())
         if not df_all.empty: df_all['Amount'] = pd.to_numeric(df_all['Amount'], errors='coerce').fillna(0)
@@ -119,57 +101,71 @@ if not form_type and not edit_idx:
     if not df.empty:
         t_inc, t_exp = df[df['Type'] == 'Income']['Amount'].sum(), df[df['Type'] == 'Expense']['Amount'].sum()
         curr_bal = opening_bal + t_inc - t_exp
-        st.markdown(f'<div class="premium-card"><div style="color:#8e8e93; font-weight:700; font-size:12px; text-transform:uppercase;">Net Balance</div><div style="font-size:36px; font-weight:800; color:#1c1c1e;">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="premium-card"><div style="color:#8e8e93; font-weight:700; font-size:12px;">NET BALANCE</div><div style="font-size:36px; font-weight:800; color:#1c1c1e;">LKR {curr_bal:,.2f}</div></div>', unsafe_allow_html=True)
 
-    # 🚀 UPDATED ACTION GRID WITH HOVER
-    st.markdown("""
-        <div class="grid-container">
-            <a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a>
-            <a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a>
-            <a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a>
-            <a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="grid-container"><a href="./?form=Income" target="_self" class="grid-btn">💰<br>Income</a><a href="./?form=Expense" target="_self" class="grid-btn">💸<br>Expense</a><a href="./?form=Transfer" target="_self" class="grid-btn">🔄<br>Transfer</a><a href="./?form=History" target="_self" class="grid-btn">📜<br>History</a></div>', unsafe_allow_html=True)
 
     if not df.empty:
         st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
         recent_items = df.tail(10).iloc[::-1]
-        for idx_row, row in recent_items.iterrows():
+        for _, row in recent_items.iterrows():
             is_inc = row['Type'] == 'Income'
             v_color, t_color, sym = ("bg-income", "#34C759", "+") if is_inc else ("bg-expense", "#FF3B30", "-")
             
-            st.markdown(f'<div class="activity-container"><div class="v-line {v_color}"></div>', unsafe_allow_html=True)
-            c_info, c_actions = st.columns([0.65, 0.35])
-            with c_info:
-                st.markdown(f"<b>{row['Category']}</b><br><span style='color:{t_color}; font-weight:800; font-size:16px;'>{sym} {row['Amount']:,.0f}</span> <small style='color:#8e8e93; margin-left:10px;'>{row['Date']}</small>", unsafe_allow_html=True)
-            with c_actions:
-                b1, b2 = st.columns(2)
-                with b1:
-                    if st.button("📝", key=f"e_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
-                with b2:
-                    if st.button("🗑️", key=f"d_{idx_row}"):
-                        worksheet.delete_rows(int(idx_row)+2)
-                        st.cache_data.clear(); st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="activity-container">
+                    <div class="v-line {v_color}"></div>
+                    <div>
+                        <div style="font-weight:700; font-size:16px;">{row['Category']}</div>
+                        <div style="color:#8e8e93; font-size:12px;">{row['Date']}</div>
+                    </div>
+                    <div style="font-weight:800; font-size:18px; color:{t_color};">{sym} {row['Amount']:,.0f}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-# --- 6. FORMS ---
+# --- 6. HISTORY PAGE (MANAGEMENT SECTION) ---
+elif form_type == "History":
+    st.markdown('<div class="premium-card"><h3>📜 Transaction History</h3><p>Manage your records below</p></div>', unsafe_allow_html=True)
+    if not df.empty:
+        history_df = df.iloc[::-1] # Show latest first
+        for idx_row, row in history_df.iterrows():
+            is_inc = row['Type'] == 'Income'
+            t_color = "#34C759" if is_inc else "#FF3B30"
+            
+            with st.container():
+                c1, c2, c3 = st.columns([0.5, 0.3, 0.2])
+                with c1: st.markdown(f"**{row['Category']}** \n<small>{row['Date']}</small>", unsafe_allow_html=True)
+                with c2: st.markdown(f"<span style='color:{t_color}; font-weight:700;'>{row['Amount']:,.0f}</span>", unsafe_allow_html=True)
+                with c3:
+                    sc1, sc2 = st.columns(2)
+                    with sc1:
+                        if st.button("📝", key=f"hist_e_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
+                    with sc2:
+                        if st.button("🗑️", key=f"hist_d_{idx_row}"):
+                            worksheet.delete_rows(int(idx_row)+2)
+                            st.cache_data.clear(); st.rerun()
+                st.divider()
+    if st.button("Back Home 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
+
+# --- 7. FORMS (INCOME/EXPENSE/EDIT) ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
     t = form_type if not is_edit else row_data['Type']
+    
     st.markdown(f'<div class="premium-card"><h3>📝 {t}</h3></div>', unsafe_allow_html=True)
-    f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
+    f_date = st.date_input("Date", date.today() if not is_edit else date.fromisoformat(str(row_data['Date'])))
     f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
     f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
     
-    if st.button("Save Entry ✅", use_container_width=True):
+    if st.button("Confirm & Save ✅", use_container_width=True):
         new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
         if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
         else: worksheet.append_row(new_row)
         st.cache_data.clear(); st.query_params.clear(); st.rerun()
-    if st.button("Back 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
+    if st.button("Cancel ❌", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 9. FAB ---
+# --- 8. FAB ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
