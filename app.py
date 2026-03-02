@@ -36,35 +36,42 @@ st.markdown("""
     .stat-inc { border-left-color: #34C759; }
     .stat-exp { border-left-color: #FF3B30; }
 
-    /* 🔥 GRID BUTTONS WITH HOVER EFFECT */
     .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; }
     .grid-btn {
         background: white; border-radius: 18px; padding: 18px; 
         text-align: center; text-decoration: none !important; 
         color: #1c1c1e !important; font-weight: 700; font-size: 15px;
         border: 1px solid #f1f3f5; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-        transition: all 0.3s ease; /* Smooth transition */
+        transition: all 0.3s ease;
         display: block;
     }
     .grid-btn:hover {
         transform: translateY(-5px);
         border-color: #007AFF;
         box-shadow: 0 8px 20px rgba(0,122,255,0.15);
-        background-color: #ffffff;
     }
 
-    /* ACTIVITY CARDS */
+    /* 🔥 IMPROVED COLOR SHADOW ACTIVITY CARDS */
     .activity-container {
-        background: white; border-radius: 18px; margin-bottom: 12px;
+        background: white; border-radius: 18px; margin-bottom: 16px;
         padding: 15px 15px 15px 22px; position: relative;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f8f9fa;
         display: flex; align-items: center; justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.7);
+        transition: 0.3s ease;
     }
-    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+    
+    /* Dynamic Shadows via Classes */
+    .shadow-income {
+        box-shadow: 0 8px 20px rgba(52, 199, 89, 0.12);
+    }
+    .shadow-expense {
+        box-shadow: 0 8px 20px rgba(255, 59, 48, 0.12);
+    }
+
+    .v-line { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: 6px 0 0 6px; }
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* Forcing buttons inline on mobile */
     [data-testid="column"] {
         display: flex; align-items: center; justify-content: flex-end; gap: 4px !important;
     }
@@ -76,11 +83,6 @@ st.markdown("""
         border-radius: 20px; display: flex; justify-content: center; align-items: center; 
         color: white; font-size: 28px; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
     }
-    .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
-    .fab-wrapper:hover .fab-list { display: flex; }
-    .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
-    .fab-label { background: white; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #1c1c1e; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .fab-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -120,7 +122,6 @@ if not form_type and not edit_idx:
         curr_bal = opening_bal + t_inc - t_exp
         st.markdown(f'<div class="premium-card"><div class="balance-label">Net Balance</div><div class="balance-amount">LKR {curr_bal:,.2f}</div><div class="stat-container"><div class="stat-box stat-inc"><div class="stat-title">Income</div><div class="stat-value" style="color:#34C759">+{t_inc:,.0f}</div></div><div class="stat-box stat-exp"><div class="stat-title">Expense</div><div class="stat-value" style="color:#FF3B30">-{t_exp:,.0f}</div></div></div></div>', unsafe_allow_html=True)
 
-    # Grid Buttons with Hover
     st.markdown('<div class="grid-container"><a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a><a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a><a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a><a href="./?form=History" target="_self" class="grid-btn">📜 History</a></div>', unsafe_allow_html=True)
 
     if not df.empty:
@@ -129,16 +130,17 @@ if not form_type and not edit_idx:
         for idx_row, row in recent_items.iterrows():
             is_income = row['Type'] == 'Income'
             v_line_color = "bg-income" if is_income else "bg-expense"
+            shadow_class = "shadow-income" if is_income else "shadow-expense"
             text_color = "#34C759" if is_income else "#FF3B30"
             prefix = "+" if is_income else "-"
             
-            st.markdown(f'<div class="activity-container"><div class="v-line {v_line_color}"></div>', unsafe_allow_html=True)
+            # Applying dynamic shadow class here
+            st.markdown(f'<div class="activity-container {shadow_class}"><div class="v-line {v_line_color}"></div>', unsafe_allow_html=True)
             
             c_left, c_right = st.columns([0.65, 0.35])
             with c_left:
                 st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
             with c_right:
-                # Color coded amount + inline buttons
                 st.markdown(f"<div style='font-weight:800; text-align:right; color:{text_color}; margin-bottom:5px;'>{prefix} {row['Amount']:,.0f}</div>", unsafe_allow_html=True)
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
@@ -149,7 +151,7 @@ if not form_type and not edit_idx:
                         st.cache_data.clear(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS (Simplified) ---
+# --- 6. FORMS ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
@@ -158,7 +160,6 @@ elif form_type or edit_idx:
     f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
     f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
     f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
-    
     if st.button("Confirm ✅", use_container_width=True):
         new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
         if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
