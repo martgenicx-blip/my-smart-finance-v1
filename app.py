@@ -5,29 +5,54 @@ import gspread
 from google.oauth2.service_account import Credentials
 import plotly.express as px
 
-# --- Page Config ---
-st.set_page_config(page_title="Finance Tracker Pro", page_icon="💰", layout="wide")
+# --- Page Config (Mobile Optimization) ---
+st.set_page_config(page_title="Finance Pro", page_icon="💰", layout="wide")
 
-# --- CSS (Design & Hover Effects) ---
+# --- CUSTOM CSS (Mobile එකටම විතරක් ගැලපෙන විදිහට) ---
 st.markdown("""
     <style>
+    /* Main Background */
+    .stApp { background-color: #f5f7f9; }
+
+    /* Top Action Buttons - Mobile Grid */
+    @media (max-width: 640px) {
+        .stButton > button {
+            height: 60px !important;
+            font-size: 14px !important;
+            margin-bottom: 5px !important;
+        }
+    }
+    
     div.stButton > button {
         width: 100% !important;
-        height: 70px !important;
         border-radius: 12px !important;
-        font-weight: bold !important;
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #ddd !important;
-        transition: 0.3s !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
     }
-    div.stButton > button:has(div:contains("Income")):hover { background-color: #d4edda !important; border-color: #28a745 !important; }
-    div.stButton > button:has(div:contains("Expense")):hover { background-color: #f8d7da !important; border-color: #dc3545 !important; }
-    
-    .summary-card {
-        background-color: white; padding: 15px; border-radius: 10px;
-        border: 1px solid #eee; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+
+    /* Summary Card Styling */
+    .summary-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 20px;
     }
+    .summary-box {
+        flex: 1;
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .summary-box h4 { margin: 0; font-size: 12px; color: gray; }
+    .summary-box p { margin: 5px 0 0 0; font-weight: bold; font-size: 15px; }
+
+    /* Floating marks */
+    .inc-mark { color: #28a745; font-weight: bold; }
+    .exp-mark { color: #dc3545; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -52,94 +77,87 @@ except Exception as e:
     st.error(f"❌ Connection Error: {e}")
     st.stop()
 
-# --- Top Navigation ---
-st.title("💰 Finance Tracker Pro")
-c1, c2, c3, c4 = st.columns(4)
-if c1.button("➕\nIncome"): st.session_state.show_form = "Income"
-if c2.button("➖\nExpense"): st.session_state.show_form = "Expense"
-if c3.button("🔄\nTransfer"): st.session_state.show_form = "Transfer"
-if c4.button("📊\nCharts"): st.session_state.show_form = "Charts"
+# --- UI Header ---
+st.markdown("<h2 style='text-align: center;'>💸 My Finance Pro</h2>", unsafe_allow_html=True)
+
+# --- 2x2 Grid for Buttons (Mobile එකේ ලස්සනට පේන්න) ---
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("➕ Income"): st.session_state.show_form = "Income"
+    if st.button("🔄 Transfer"): st.session_state.show_form = "Transfer"
+with col2:
+    if st.button("➖ Expense"): st.session_state.show_form = "Expense"
+    if st.button("📊 Charts"): st.session_state.show_form = "Charts"
 
 st.write("---")
 
-# --- 1. Data Entry Forms ---
-if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
-    with st.container():
-        st.subheader(f"Add {st.session_state.show_form}")
-        with st.form("entry_form", clear_on_submit=True):
-            d = st.date_input("Date", date.today())
-            amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00", min_value=0.0)
-            
-            if st.session_state.show_form == "Transfer":
-                f_acc = st.selectbox("From Account", ["Cash", "Bank", "Card"])
-                t_acc = st.selectbox("To Account", ["Bank", "Cash", "Card"])
-                cat = "Transfer"
-            else:
-                cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Shopping", "Other"])
-                f_acc, t_acc = "", ""
-
-            note = st.text_input("Note")
-            if st.form_submit_button("Save Record ✅"):
-                if amt is not None and amt > 0:
-                    ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
-                    worksheet.append_row([ts, cat, amt, note, st.session_state.show_form, f_acc, t_acc])
-                    st.success("Saved!"); st.session_state.show_form = None; st.rerun()
-                else:
-                    st.warning("Please enter a valid amount.")
-
-# --- 2. Summary ---
+# --- Summary Row (Mobile පේළියකට) ---
 if not df.empty:
     ti = df[df['Type'] == 'Income']['Amount'].sum()
     te = df[df['Type'] == 'Expense']['Amount'].sum()
-    sc1, sc2, sc3 = st.columns(3)
-    sc1.markdown(f'<div class="summary-card">Total Income<br><h3 style="color:green;">LKR {ti:,.0f}</h3></div>', unsafe_allow_html=True)
-    sc2.markdown(f'<div class="summary-card">Total Expense<br><h3 style="color:red;">LKR {te:,.0f}</h3></div>', unsafe_allow_html=True)
-    sc3.markdown(f'<div class="summary-card">Net Balance<br><h3>LKR {ti-te:,.0f}</h3></div>', unsafe_allow_html=True)
+    bal = ti - te
+    
+    st.markdown(f"""
+        <div class="summary-container">
+            <div class="summary-box"><h4>Income</h4><p style="color:green;">{ti:,.0f}</p></div>
+            <div class="summary-box"><h4>Expense</h4><p style="color:red;">{te:,.0f}</p></div>
+            <div class="summary-box"><h4>Balance</h4><p>{bal:,.0f}</p></div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- History Header & Filtering ---
-st.write("---")
-st.subheader("📜 Recent Transactions")
+# --- Forms & Charts ---
+if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
+    with st.form("entry_form", clear_on_submit=True):
+        st.subheader(f"Add {st.session_state.show_form}")
+        d = st.date_input("Date", date.today())
+        amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00", min_value=0.0)
+        
+        if st.session_state.show_form == "Transfer":
+            f_acc = st.selectbox("From", ["Cash", "Bank", "Card"])
+            t_acc = st.selectbox("To", ["Bank", "Cash", "Card"])
+            cat = "Transfer"
+        else:
+            cat = st.selectbox("Category", ["Food", "Salary", "Bills", "Travel", "Other"])
+            f_acc, t_acc = "", ""
 
+        note = st.text_input("Note")
+        if st.form_submit_button("Save ✅"):
+            if amt:
+                ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
+                worksheet.append_row([ts, cat, amt, note, st.session_state.show_form, f_acc, t_acc])
+                st.success("Saved!"); st.session_state.show_form = None; st.rerun()
+
+if st.session_state.show_form == "Charts" and not df.empty:
+    exp_df = df[df['Type'] == 'Expense']
+    if not exp_df.empty:
+        st.plotly_chart(px.pie(exp_df, values='Amount', names='Category', hole=0.5), use_container_width=True)
+
+# --- History with Date Filter ---
+st.markdown("### 📜 History")
 if not df.empty:
-    f_col1, f_col2 = st.columns(2)
-    start_d = f_col1.date_input("Start Date", df['Date_Only'].min())
-    end_d = f_col2.date_input("End Date", date.today())
+    f1, f2 = st.columns(2)
+    start_d = f1.date_input("Start", df['Date_Only'].min())
+    end_d = f2.date_input("End", date.today())
 
     mask = (df['Date_Only'] >= start_d) & (df['Date_Only'] <= end_d)
     df['row_idx'] = range(2, len(df) + 2)
     filtered_df = df.loc[mask].iloc[::-1]
 
-    if not filtered_df.empty:
-        for idx, row in filtered_df.iterrows():
-            col_data, col_del = st.columns([0.9, 0.1])
-            
-            # --- පාට වෙනස් කරන Inline Logic එක මෙන්න ---
-            if row['Type'] == "Income":
-                text_color = "#28a745" # Green
-                mark = "+"
-            elif row['Type'] == "Expense":
-                text_color = "#dc3545" # Red
-                mark = "-"
-            else:
-                text_color = "#ff8c00" # Orange for Transfer
-                mark = "🔄"
-            
-            with col_data:
-                # මෙතන කෙලින්ම style attribute එක පාවිච්චි කළා පාට ස්ථිර කරන්න
-                st.markdown(f"""
-                    <div style="background:white; padding:15px; border-radius:10px; border-left:8px solid {text_color}; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <span style="float:right; font-weight:bold; color:{text_color}; font-size:20px;">
-                            {mark} LKR {row['Amount']:,.0f}
-                        </span>
-                        <div style="font-size:12px; color:gray;">📅 {row['Date']}</div>
-                        <div style="font-weight:bold; font-size:16px; color:#333;">{row['Category']}</div>
-                        <div style="font-size:14px; color:#555;">{row['Description']}</div>
-                        {f"<small style='color:orange;'>{row['From_Account']} ➡️ {row['To_Account']}</small>" if row['Type'] == 'Transfer' else ''}
-                    </div>
-                    """, unsafe_allow_html=True)
-            with col_del:
-                if st.button("🗑️", key=f"del_{row['row_idx']}"):
-                    worksheet.delete_rows(int(row['row_idx']))
-                    st.success("Deleted!"); st.rerun()
-    else:
-        st.info("No records found.")
+    for idx, row in filtered_df.iterrows():
+        c_data, c_del = st.columns([0.85, 0.15])
+        t_color = "#28a745" if row['Type'] == "Income" else "#dc3545" if row['Type'] == "Expense" else "#ff8c00"
+        mark = "+" if row['Type'] == "Income" else "-" if row['Type'] == "Expense" else "🔄"
+        
+        with c_data:
+            st.markdown(f"""
+                <div style="background:white; padding:12px; border-radius:10px; border-left:6px solid {t_color}; margin-bottom:8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <span style="float:right; font-weight:bold; color:{t_color};">{mark} {row['Amount']:,.0f}</span>
+                    <div style="font-size:11px; color:gray;">{row['Date']}</div>
+                    <div style="font-weight:bold; font-size:14px;">{row['Category']}</div>
+                    <div style="font-size:13px; color:#666;">{row['Description']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        with c_del:
+            if st.button("🗑️", key=f"del_{row['row_idx']}"):
+                worksheet.delete_rows(int(row['row_idx']))
+                st.rerun()
