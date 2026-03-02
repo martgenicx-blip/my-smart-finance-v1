@@ -105,4 +105,63 @@ with col2:
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
     st.write("---")
     with st.form("entry_form", clear_on_submit=True):
-        st.subheader(f"📝 New {st.session_
+        # මෙන්න මෙතන තමයි Fix කළේ (පේළිය කැපෙන්නේ නැති වෙන්න):
+        st.subheader(f"📝 New {st.session_state.show_form}")
+        d = st.date_input("Date", date.today())
+        amt = st.number_input("Amount (LKR)", value=None, placeholder="0.00")
+        note = st.text_input("Note")
+        if st.form_submit_button("Save Record ✅"):
+            if amt:
+                ts = f"{d} {datetime.now().strftime('%H:%M:%S')}"
+                worksheet.append_row([ts, "General", amt, note, st.session_state.show_form, "", ""])
+                st.session_state.show_form = None
+                st.rerun()
+
+# --- 3. SUMMARY SECTION ---
+if not df.empty:
+    ti = df[df['Type'] == 'Income']['Amount'].sum()
+    te = df[df['Type'] == 'Expense']['Amount'].sum()
+    bal = ti - te
+    st.markdown(f"""
+        <div style="text-align:center; font-size:12px; color:gray; margin-top:20px;">{date.today().strftime('%d %B %Y')}</div>
+        <table class="summary-table">
+            <tr>
+                <td><span style="color:gray; font-size:11px;">Income</span><br><b style="color:green; font-size:16px;">{ti:,.0f}</b></td>
+                <td><span style="color:gray; font-size:11px;">Expense</span><br><b style="color:red; font-size:16px;">{te:,.0f}</b></td>
+                <td><span style="color:gray; font-size:11px;">Balance</span><br><b style="font-size:16px;">{bal:,.0f}</b></td>
+            </tr>
+            <tr style="background:#fcfcfc;"><td colspan="2" style="text-align:right; color:gray; font-size:12px;">Previous Balance</td><td style="color:green; font-weight:bold;">38,814.85</td></tr>
+            <tr style="background:#e3f2fd; font-weight:bold;"><td colspan="2" style="text-align:right;">Total Cash</td><td style="color:green; font-size:15px;">{(38814.85 + bal):,.2f}</td></tr>
+        </table>
+    """, unsafe_allow_html=True)
+
+# --- 4. RECENT TRANSACTIONS ---
+st.markdown("<br><b>Recent Transactions</b>", unsafe_allow_html=True)
+if not df.empty:
+    latest = df.iloc[::-1].head(10)
+    for _, row in latest.iterrows():
+        color = "#28a745" if row['Type'] == "Income" else "#dc3545"
+        sym = "+" if row['Type'] == "Income" else "-"
+        st.markdown(f"""
+            <div style="background:white; padding:15px; border-radius:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <div>
+                    <div style="font-size:11px; color:gray;">{row['Date']}</div>
+                    <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
+                    <div style="font-size:10px; color:#0081C9; font-weight:bold;">BANK</div>
+                </div>
+                <div style="color:{color}; font-weight:bold; font-size:16px;">{sym} {row['Amount']:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+# --- 5. FLOATING MENU ---
+st.markdown("""
+    <div class="fab-wrapper">
+        <div class="fab-list">
+            <div class="fab-item"><span class="fab-label bg-trans">Transactions</span><div class="fab-icon bg-trans">☰</div></div>
+            <div class="fab-item"><span class="fab-label bg-transfer">Transfer</span><div class="fab-icon bg-transfer">⇄</div></div>
+            <div class="fab-item"><span class="fab-label bg-income">Add Income</span><div class="fab-icon bg-income">⊕</div></div>
+            <div class="fab-item"><span class="fab-label bg-expense">Add Expense</span><div class="fab-icon bg-expense">⊖</div></div>
+        </div>
+        <div class="fab-main">+</div>
+    </div>
+""", unsafe_allow_html=True)
