@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles (Mobile Optimized) ---
+# --- 2. CSS Styles (Ultra Mobile Optimized) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -40,29 +40,20 @@ st.markdown("""
         text-decoration: none !important; transition: 0.2s;
     }
 
-    /* Transaction Cards */
+    /* 🔥 Transaction Cards - Inline Button Fix */
     .trans-card { 
-        background: white; padding: 15px; border-radius: 15px; 
+        background: white; padding: 12px 15px; border-radius: 15px; 
         display: flex; justify-content: space-between; align-items: center; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 5px; border-left: 6px solid #ccc;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 10px; border-left: 6px solid #ccc;
     }
     .trans-income { border-left-color: #28a745; }
     .trans-expense { border-left-color: #dc3545; }
     
-    /* Inline Action Buttons Fix */
-    .action-container {
+    /* Button container styling */
+    .inline-btns {
         display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        margin-top: -10px;
-        margin-bottom: 15px;
-        padding-right: 5px;
-    }
-    div.stButton > button {
-        padding: 5px 15px !important;
-        border-radius: 8px !important;
-        height: auto !important;
-        width: 100% !important;
+        gap: 10px;
+        align-items: center;
     }
 
     /* FAB Menu */
@@ -102,7 +93,7 @@ except:
 st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
 
 # --- 5. Summary & Action Grid ---
-if not df.empty:
+if not df.empty and not query_params:
     t_inc = df[df['Type'] == 'Income']['Amount'].sum()
     t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
     bal = t_inc - t_exp
@@ -162,29 +153,33 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
             else: worksheet.append_row(row_data)
             st.query_params.clear(); st.rerun()
 
-# --- 7. Recent Transactions (Inline Buttons) ---
+# --- 7. Recent Transactions (Clean Inline UI) ---
 if not form_type and not edit_idx and not df.empty:
     st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
     for idx in df.index[-10:][::-1]:
         row = df.loc[idx]
         is_inc = row['Type'] == 'Income'
-        st.markdown(f"""
-            <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
-                <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
-                <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'};">
-                    {'+' if is_inc else '-'}{row['Amount']:,.0f}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
         
-        # 🎯 බටන් දෙක එකම පේළියට (Inline)
-        col_space, col_edit, col_del = st.columns([0.6, 0.2, 0.2])
-        with col_edit:
-            if st.button("✏️", key=f"edit_{idx}"):
+        # 🎯 Flexbox Container used for Data + Buttons
+        col_main, col_btn_group = st.columns([0.7, 0.3])
+        
+        with col_main:
+            st.markdown(f"""
+                <div class="trans-card {'trans-income' if is_inc else 'trans-expense'}">
+                    <div><b>{row['Category']}</b><br><small>{row['Date']}</small></div>
+                    <div style="font-weight:700; color:{'#28a745' if is_inc else '#dc3545'};">
+                        {'+' if is_inc else '-'}{row['Amount']:,.0f}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        with col_btn_group:
+            # බටන් දෙක පේළියට තැබීම සඳහා කුඩා කොලම් දෙකක් Card එක අසලම
+            b1, b2 = st.columns(2)
+            if b1.button("✏️", key=f"ed_{idx}"):
                 st.query_params.update(edit=idx)
                 st.rerun()
-        with col_del:
-            if st.button("🗑️", key=f"del_{idx}"):
+            if b2.button("🗑️", key=f"dl_{idx}"):
                 worksheet.delete_rows(int(idx)+2)
                 st.rerun()
 
