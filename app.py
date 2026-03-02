@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. Page Config ---
 st.set_page_config(page_title="Smart Finance Tracker", layout="wide")
 
-# --- 2. CSS Styles (Updated for Clean Inline Rows) ---
+# --- 2. CSS Styles (Clean & Borderless) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -40,14 +40,7 @@ st.markdown("""
         text-decoration: none !important; transition: 0.2s;
     }
 
-    /* 🔥 Minimalist Inline Row Styles */
-    .trans-row {
-        background: white; padding: 10px 15px; border-radius: 12px; 
-        margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        display: flex; align-items: center;
-    }
-    
-    /* Remove Button Borders & Padding */
+    /* 🔥 Borderless & Padding-less Buttons */
     div.stButton > button {
         border: none !important;
         background: transparent !important;
@@ -58,7 +51,7 @@ st.markdown("""
         font-size: 18px !important;
         box-shadow: none !important;
     }
-    div.stButton > button:hover { background-color: #f0f0f0 !important; border-radius: 50% !important; }
+    div.stButton > button:hover { background-color: #eeeeee !important; border-radius: 50% !important; }
 
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
     .fab-main { width: 60px; height: 60px; background: #0081C9; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; box-shadow: 0 4px 15px rgba(0,129,201,0.4); cursor: pointer; }
@@ -87,20 +80,17 @@ try:
 except:
     st.error("Connection Failed!"); st.stop()
 
-# --- 4. Header ---
+# --- 4. Header & Navigation ---
 st.markdown('<div class="header-bar">Finance Tracker Pro</div>', unsafe_allow_html=True)
-
-# --- 5. Summary & Action Grid ---
 query = st.query_params
 form_type = query.get("form")
 edit_idx = query.get("edit")
 
+# --- 5. MAIN HOME PAGE ---
 if not form_type and not edit_idx:
     if not df.empty:
-        t_inc = df[df['Type'] == 'Income']['Amount'].sum()
-        t_exp = df[df['Type'] == 'Expense']['Amount'].sum()
-        bal = t_inc - t_exp
-        final_bal = 38814.85 + bal
+        t_inc, t_exp = df[df['Type'] == 'Income']['Amount'].sum(), df[df['Type'] == 'Expense']['Amount'].sum()
+        final_bal = 38814.85 + (t_inc - t_exp)
 
         st.markdown(f"""
             <div class="main-summary">
@@ -123,8 +113,35 @@ if not form_type and not edit_idx:
         </div>
     """, unsafe_allow_html=True)
 
-# --- 6. Routing & Forms ---
-if form_type == "ManageCats":
+    # 🔥 Recent Activity (Inline Alignment)
+    if not df.empty:
+        st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
+        for idx in df.index[-10:][::-1]:
+            row = df.loc[idx]
+            is_inc = row['Type'] == 'Income'
+            color = "#28a745" if is_inc else "#dc3545"
+            
+            st.markdown(f'<div style="background:white; border-radius:12px; margin-bottom:8px; padding:5px; border-left:6px solid {color}; shadow: 0 2px 5px rgba(0,0,0,0.02);">', unsafe_allow_html=True)
+            c1, c2, c3, c4 = st.columns([0.6, 0.2, 0.1, 0.1])
+            with c1: st.markdown(f'<div style="padding-top:5px;"><b>{row["Category"]}</b><br><small>{row["Date"]}</small></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div style="color:{color}; font-weight:700; font-size:18px; padding-top:10px;">{"+" if is_inc else "-"}{row["Amount"]:,.0f}</div>', unsafe_allow_html=True)
+            with c3:
+                st.write(" ") # Spacer
+                if st.button("✏️", key=f"e_{idx}"): st.query_params.update(edit=idx); st.rerun()
+            with c4:
+                st.write(" ") # Spacer
+                if st.button("🗑️", key=f"d_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 6. HISTORY VIEW (NEWLY ADDED) ---
+elif form_type == "History":
+    st.subheader("📜 Transaction History")
+    if not df.empty:
+        st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+    if st.button("⬅️ Back Home"): st.query_params.clear(); st.rerun()
+
+# --- 7. MANAGE CATEGORIES ---
+elif form_type == "ManageCats":
     st.subheader("⚙️ Manage Categories")
     new_c = st.text_input("New Category")
     if st.button("➕ Add"):
@@ -132,12 +149,14 @@ if form_type == "ManageCats":
     for c in categories:
         col1, col2 = st.columns([0.8, 0.2])
         col1.write(f"• {c}")
-        if col2.button("➖", key=f"d_{c}"):
+        if col2.button("❌", key=f"dc_{c}"):
             cell = cat_sheet.find(c); cat_sheet.delete_rows(cell.row); st.rerun()
+    if st.button("⬅️ Back Home"): st.query_params.clear(); st.rerun()
 
+# --- 8. INCOME / EXPENSE FORMS ---
 elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
     curr_type = form_type if not edit_idx else df.loc[int(edit_idx)]['Type']
-    st.markdown(f"### 📝 {curr_type}")
+    st.markdown(f"### 📝 {curr_type} Entry")
     with st.form("entry_form"):
         f_date = st.date_input("Date", date.today())
         f_cat = st.selectbox("Category", categories)
@@ -145,47 +164,11 @@ elif form_type in ["Income", "Expense", "Transfer"] or edit_idx:
         f_desc = st.text_input("Description")
         if st.form_submit_button("Save ✅"):
             ts = f"{f_date} {datetime.now().strftime('%H:%M:%S')}"
-            row_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
-            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [row_data])
-            else: worksheet.append_row(row_data)
+            r_data = [ts, f_cat, f_amt, f_desc, curr_type, "Cash", "Bank", ""]
+            if edit_idx: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [r_data])
+            else: worksheet.append_row(r_data)
             st.query_params.clear(); st.rerun()
+    if st.button("Cancel"): st.query_params.clear(); st.rerun()
 
-# --- 7. Recent Transactions (🔥 Updated Alignment) ---
-if not form_type and not edit_idx and not df.empty:
-    st.write("<b>Recent Activity</b>", unsafe_allow_html=True)
-    for idx in df.index[-10:][::-1]:
-        row = df.loc[idx]
-        is_inc = row['Type'] == 'Income'
-        color = "#28a745" if is_inc else "#dc3545"
-        
-        # Wrapping in a Pure White Container
-        st.markdown(f'<div style="background:white; border-radius:12px; margin-bottom:8px; padding:5px; border-left:6px solid {color}; shadow: 0 2px 5px rgba(0,0,0,0.02);">', unsafe_allow_html=True)
-        
-        c1, c2, c3, c4 = st.columns([0.6, 0.2, 0.1, 0.1])
-        
-        with c1:
-            st.markdown(f'<div style="padding-top:5px; line-height:1.2;"><b>{row["Category"]}</b><br><small style="color:gray;">{row["Date"]}</small></div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div style="color:{color}; font-weight:700; font-size:18px; padding-top:10px;">{"+" if is_inc else "-"}{row["Amount"]:,.0f}</div>', unsafe_allow_html=True)
-        with c3:
-            st.write(" ") # spacer
-            if st.button("📝", key=f"edit_{idx}"): st.query_params.update(edit=idx); st.rerun()
-        with c4:
-            st.write(" ") # spacer
-            if st.button("🗑️", key=f"del_{idx}"): worksheet.delete_rows(int(idx)+2); st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 8. Floating Menu ---
-st.markdown("""
-    <div class="fab-wrapper">
-        <div class="fab-list">
-            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a>
-            <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a>
-            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a>
-            <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a>
-            <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a>
-        </div>
-        <div class="fab-main">+</div>
-    </div>
-""", unsafe_allow_html=True)
+# --- 9. Floating Menu ---
+st.markdown("""<div class="fab-wrapper"><div class="fab-list"><a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007bff;">📜</div></a><a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#6c757d;">⚙️</div></a><a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#fd7e14;">🔄</div></a><a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#28a745;">➕</div></a><a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#dc3545;">➖</div></a></div><div class="fab-main">+</div></div>""", unsafe_allow_html=True)
