@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # --- Page Config ---
 st.set_page_config(page_title="Income Expense Tracker", layout="wide")
 
-# --- CUSTOM CSS (Grid Order & Design Fix) ---
+# --- CUSTOM CSS (Responsive Grid Fix) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f8f9fa; }
@@ -21,27 +21,30 @@ st.markdown("""
         margin: -60px -20px 20px -20px;
     }
     
-    /* Grid Layout Fix */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 12px !important;
+    /* Responsive Grid Logic */
+    @media (min-width: 800px) {
+        /* Desktop එකේදී Buttons 4ම එක පේළියට ගන්න */
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+        }
     }
-    
+
     div.stButton > button {
         width: 100% !important;
-        height: 90px !important;
+        height: 80px !important;
         border-radius: 15px !important;
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #eee !important;
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
         transition: 0.3s;
     }
     div.stButton > button:hover {
         border-color: #0081C9 !important;
         background-color: #f0f8ff !important;
-        transform: translateY(-2px);
     }
 
     .summary-table {
@@ -55,12 +58,12 @@ st.markdown("""
     }
     .summary-table td { padding: 12px; border: 1px solid #eee; text-align: center; }
     
+    /* FAB Menu Style */
     .fab-wrapper { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
     .fab-main {
         width: 60px; height: 60px; background: #0081C9; border-radius: 50%;
         display: flex; justify-content: center; align-items: center;
         color: white; font-size: 35px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        cursor: pointer;
     }
     .fab-list {
         position: absolute; bottom: 75px; right: 0;
@@ -72,11 +75,7 @@ st.markdown("""
         color: white; padding: 4px 12px; border-radius: 6px;
         font-size: 13px; font-weight: bold; white-space: nowrap;
     }
-    .fab-icon {
-        width: 42px; height: 42px; border-radius: 50%;
-        display: flex; justify-content: center; align-items: center;
-        color: white; font-size: 18px;
-    }
+    .fab-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; }
     .bg-income { background-color: #28a745; }
     .bg-expense { background-color: #dc3545; }
     .bg-transfer { background-color: #fd7e14; }
@@ -105,16 +104,19 @@ try:
 except:
     st.error("Sheet Connection Error"); st.stop()
 
-# --- 1. MAIN BUTTONS GRID (Fix කරපු Order එක) ---
-col1, col2 = st.columns(2)
-with col1:
+# --- RESPONSIVE BUTTON GRID ---
+# Columns 4ක් ගන්නවා. Mobile එකේදී Streamlit මේවා Auto පල්ලෙහාට දානවා, Desktop එකේදී එක පේළියට තියාගන්නවා.
+c1, c2, c3, c4 = st.columns(4)
+with c1:
     if st.button("➕ Income", key="btn_inc"): st.session_state.show_form = "Income"
-    if st.button("🔄 Transfer", key="btn_trf"): st.session_state.show_form = "Transfer"
-with col2:
+with c2:
     if st.button("➖ Expense", key="btn_exp"): st.session_state.show_form = "Expense"
+with c3:
+    if st.button("🔄 Transfer", key="btn_trf"): st.session_state.show_form = "Transfer"
+with c4:
     if st.button("📜 History", key="btn_his"): st.session_state.show_form = "History"
 
-# --- 2. DATA ENTRY FORM ---
+# --- DATA ENTRY FORM ---
 if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
     st.write("---")
     with st.form("entry_form", clear_on_submit=True):
@@ -129,7 +131,7 @@ if st.session_state.show_form in ["Income", "Expense", "Transfer"]:
                 st.session_state.show_form = None
                 st.rerun()
 
-# --- 3. SUMMARY SECTION ---
+# --- SUMMARY SECTION ---
 if not df.empty:
     ti = df[df['Type'] == 'Income']['Amount'].sum()
     te = df[df['Type'] == 'Expense']['Amount'].sum()
@@ -147,7 +149,7 @@ if not df.empty:
         </table>
     """, unsafe_allow_html=True)
 
-# --- 4. RECENT TRANSACTIONS ---
+# --- RECENT TRANSACTIONS ---
 st.markdown("<br><b>Recent Transactions</b>", unsafe_allow_html=True)
 if not df.empty:
     latest = df.iloc[::-1].head(10)
@@ -155,17 +157,17 @@ if not df.empty:
         color = "#28a745" if row['Type'] == "Income" else "#dc3545"
         sym = "+" if row['Type'] == "Income" else "-"
         st.markdown(f"""
-            <div style="background:white; padding:15px; border-radius:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="background:white; padding:15px; border-radius:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <div>
                     <div style="font-size:11px; color:gray;">{row['Date']}</div>
-                    <div style="font-weight:bold; font-size:14px; color:#333;">{row['Category']}</div>
+                    <div style="font-weight:bold; font-size:14px;">{row['Category']}</div>
                     <div style="font-size:10px; color:#0081C9; font-weight:bold;">BANK</div>
                 </div>
                 <div style="color:{color}; font-weight:bold; font-size:16px;">{sym} {row['Amount']:,.0f}</div>
             </div>
             """, unsafe_allow_html=True)
 
-# --- 5. FLOATING MENU ---
+# --- FLOATING ACTION MENU ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
