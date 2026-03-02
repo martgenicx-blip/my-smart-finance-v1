@@ -37,7 +37,7 @@ st.markdown("""
     .stat-title { color: #8E8E93; font-size: 11px; font-weight: 600; }
     .stat-value { font-size: 16px; font-weight: 700; }
 
-    /* Action Grid - 2 Columns */
+    /* Action Grid - Responsive 2 Columns */
     .grid-container {
         display: grid; grid-template-columns: repeat(2, 1fr);
         gap: 12px; margin-bottom: 25px;
@@ -49,7 +49,7 @@ st.markdown("""
         border: 1px solid #f1f3f5; transition: 0.3s;
         box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
-    .grid-btn:hover { border-color: #007AFF; transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,122,255,0.1); }
+    .grid-btn:hover { border-color: #007AFF; transform: translateY(-3px); }
 
     /* ACTIVITY CARDS - CLEAN & INLINE */
     .activity-container {
@@ -62,21 +62,22 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* Force buttons to stay inline in Streamlit columns */
+    /* Force buttons to stay inline */
     [data-testid="column"] { display: flex; align-items: center; justify-content: flex-end; gap: 5px !important; }
 
-    /* FAB */
+    /* 🔥 FULL FLOATING ACTION MENU (RESTORED) */
     .fab-wrapper { position: fixed; bottom: 30px; right: 25px; z-index: 9999; }
     .fab-main { 
-        width: 60px; height: 60px; background: #007AFF;
+        width: 60px; height: 60px; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
         border-radius: 20px; display: flex; justify-content: center; align-items: center; 
-        color: white; font-size: 28px; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
+        color: white; font-size: 32px; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
+        cursor: pointer;
     }
     .fab-list { display: none; flex-direction: column; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
     .fab-wrapper:hover .fab-list { display: flex; }
     .fab-item { display: flex; align-items: center; gap: 10px; text-decoration: none !important; }
-    .fab-label { background: #1c1c1e; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: white; }
-    .fab-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; }
+    .fab-label { background: white; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #1c1c1e; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .fab-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -132,7 +133,7 @@ if not form_type and not edit_idx:
             </div>
         """, unsafe_allow_html=True)
 
-    # Responsive Action Grid
+    # Main Grid
     st.markdown("""
         <div class="grid-container">
             <a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a>
@@ -155,7 +156,6 @@ if not form_type and not edit_idx:
                 st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
             with c_right:
                 st.markdown(f"<div style='font-weight:800; text-align:right; color:{t_color}; margin-bottom:5px;'>{sym} {row['Amount']:,.0f}</div>", unsafe_allow_html=True)
-                # Buttons container
                 b1, b2 = st.columns(2)
                 with b1:
                     if st.button("📝", key=f"e_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
@@ -180,13 +180,16 @@ elif form_type or edit_idx:
         if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
         else: worksheet.append_row(new_row)
         st.cache_data.clear(); st.query_params.clear(); st.rerun()
-    if st.button("Back Home 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
+    if st.button("Back 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
 
-# --- 9. FLOATING ACTION MENU ---
+# --- 9. FULL FLOATING ACTION MENU (RESTORED ALL OPTIONS) ---
 st.markdown("""
     <div class="fab-wrapper">
         <div class="fab-list">
             <a href="./" target="_self" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#1c1c1e;">🏠</div></a>
+            <a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007AFF;">📜</div></a>
+            <a href="./?form=ManageCats" target="_self" class="fab-item"><span class="fab-label">Settings</span><div class="fab-icon" style="background:#5856D6;">⚙️</div></a>
+            <a href="./?form=Transfer" target="_self" class="fab-item"><span class="fab-label">Transfer</span><div class="fab-icon" style="background:#FF9500;">🔄</div></a>
             <a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#34C759;">➕</div></a>
             <a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#FF3B30;">➖</div></a>
         </div>
