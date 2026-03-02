@@ -8,7 +8,7 @@ import time
 # --- 1. Page Config ---
 st.set_page_config(page_title="FinanceFlow Pro", layout="wide")
 
-# --- 2. 🎨 MOBILE-RESPONSIVE PREMIUM UI CSS ---
+# --- 2. 🎨 PREMIUM RESPONSIVE UI CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
@@ -36,15 +36,24 @@ st.markdown("""
     .stat-inc { border-left-color: #34C759; }
     .stat-exp { border-left-color: #FF3B30; }
 
+    /* 🔥 GRID BUTTONS WITH HOVER EFFECT */
     .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; }
     .grid-btn {
-        background: white; border-radius: 18px; padding: 15px; 
+        background: white; border-radius: 18px; padding: 18px; 
         text-align: center; text-decoration: none !important; 
-        color: #1c1c1e !important; font-weight: 700; font-size: 14px;
+        color: #1c1c1e !important; font-weight: 700; font-size: 15px;
         border: 1px solid #f1f3f5; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        transition: all 0.3s ease; /* Smooth transition */
+        display: block;
+    }
+    .grid-btn:hover {
+        transform: translateY(-5px);
+        border-color: #007AFF;
+        box-shadow: 0 8px 20px rgba(0,122,255,0.15);
+        background-color: #ffffff;
     }
 
-    /* 🔥 INLINE BUTTONS FOR MOBILE */
+    /* ACTIVITY CARDS */
     .activity-container {
         background: white; border-radius: 18px; margin-bottom: 12px;
         padding: 15px 15px 15px 22px; position: relative;
@@ -55,9 +64,9 @@ st.markdown("""
     .bg-income { background-color: #34C759; }
     .bg-expense { background-color: #FF3B30; }
 
-    /* Custom CSS to force buttons inline in Streamlit Columns */
+    /* Forcing buttons inline on mobile */
     [data-testid="column"] {
-        display: flex; align-items: center; justify-content: flex-end; gap: 5px !important;
+        display: flex; align-items: center; justify-content: flex-end; gap: 4px !important;
     }
     
     /* FAB */
@@ -97,7 +106,7 @@ try:
 
     df, categories, opening_bal = load_data()
 except Exception as e:
-    st.error("Connection Error"); st.stop()
+    st.error("Sheet Connection Error"); st.stop()
 
 q = st.query_params
 form_type, edit_idx = q.get("form"), q.get("edit")
@@ -111,29 +120,36 @@ if not form_type and not edit_idx:
         curr_bal = opening_bal + t_inc - t_exp
         st.markdown(f'<div class="premium-card"><div class="balance-label">Net Balance</div><div class="balance-amount">LKR {curr_bal:,.2f}</div><div class="stat-container"><div class="stat-box stat-inc"><div class="stat-title">Income</div><div class="stat-value" style="color:#34C759">+{t_inc:,.0f}</div></div><div class="stat-box stat-exp"><div class="stat-title">Expense</div><div class="stat-value" style="color:#FF3B30">-{t_exp:,.0f}</div></div></div></div>', unsafe_allow_html=True)
 
+    # Grid Buttons with Hover
     st.markdown('<div class="grid-container"><a href="./?form=Income" target="_self" class="grid-btn">💰 Income</a><a href="./?form=Expense" target="_self" class="grid-btn">💸 Expense</a><a href="./?form=Transfer" target="_self" class="grid-btn">🔄 Transfer</a><a href="./?form=History" target="_self" class="grid-btn">📜 History</a></div>', unsafe_allow_html=True)
 
     if not df.empty:
-        st.markdown('<h3 style="font-size:18px; font-weight:700;">Recent Activity</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 style="font-size:18px; font-weight:700; margin-bottom:15px;">Recent Activity</h3>', unsafe_allow_html=True)
         recent_items = df.tail(10).iloc[::-1]
         for idx_row, row in recent_items.iterrows():
-            v_line_color = "bg-income" if row['Type'] == 'Income' else "bg-expense"
+            is_income = row['Type'] == 'Income'
+            v_line_color = "bg-income" if is_income else "bg-expense"
+            text_color = "#34C759" if is_income else "#FF3B30"
+            prefix = "+" if is_income else "-"
+            
             st.markdown(f'<div class="activity-container"><div class="v-line {v_line_color}"></div>', unsafe_allow_html=True)
             
-            # Using only 2 main columns to force inline buttons
             c_left, c_right = st.columns([0.65, 0.35])
             with c_left:
-                st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']} • {row['Amount']:,.0f}</small>", unsafe_allow_html=True)
+                st.markdown(f"<b>{row['Category']}</b><br><small style='color:#8e8e93'>{row['Date']}</small>", unsafe_allow_html=True)
             with c_right:
-                # Buttons container
+                # Color coded amount + inline buttons
+                st.markdown(f"<div style='font-weight:800; text-align:right; color:{text_color}; margin-bottom:5px;'>{prefix} {row['Amount']:,.0f}</div>", unsafe_allow_html=True)
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
                     if st.button("📝", key=f"e_{idx_row}"): st.query_params.update(edit=idx_row); st.rerun()
                 with btn_col2:
-                    if st.button("🗑️", key=f"d_{idx_row}"): worksheet.delete_rows(int(idx_row)+2); st.cache_data.clear(); st.rerun()
+                    if st.button("🗑️", key=f"d_{idx_row}"):
+                        worksheet.delete_rows(int(idx_row)+2)
+                        st.cache_data.clear(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. FORMS ---
+# --- 6. FORMS (Simplified) ---
 elif form_type or edit_idx:
     is_edit = edit_idx is not None
     row_data = df.loc[int(edit_idx)] if is_edit else None
@@ -142,6 +158,7 @@ elif form_type or edit_idx:
     f_date = st.date_input("Date", date.fromisoformat(str(row_data['Date'])) if is_edit else date.today())
     f_cat = st.selectbox("Category", categories, index=categories.index(row_data['Category']) if is_edit and row_data['Category'] in categories else 0)
     f_amt = st.number_input("Amount", min_value=0.0, value=float(row_data['Amount']) if is_edit else 0.0)
+    
     if st.button("Confirm ✅", use_container_width=True):
         new_row = [str(f_date), f_cat, f_amt, "", t, "Cash", "Bank", ""]
         if is_edit: worksheet.update(f'A{int(edit_idx)+2}:H{int(edit_idx)+2}', [new_row])
@@ -150,4 +167,4 @@ elif form_type or edit_idx:
     if st.button("Back 🏠", use_container_width=True): st.query_params.clear(); st.rerun()
 
 # --- 9. FAB ---
-st.markdown("""<div class="fab-wrapper"><div class="fab-list"><a href="./" target="_self" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#1c1c1e;">🏠</div></a><a href="./?form=History" target="_self" class="fab-item"><span class="fab-label">History</span><div class="fab-icon" style="background:#007AFF;">📜</div></a><a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#34C759;">➕</div></a><a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#FF3B30;">➖</div></a></div><div class="fab-main">+</div></div>""", unsafe_allow_html=True)
+st.markdown("""<div class="fab-wrapper"><div class="fab-list"><a href="./" target="_self" class="fab-item"><span class="fab-label">Home</span><div class="fab-icon" style="background:#1c1c1e;">🏠</div></a><a href="./?form=Income" target="_self" class="fab-item"><span class="fab-label">Income</span><div class="fab-icon" style="background:#34C759;">➕</div></a><a href="./?form=Expense" target="_self" class="fab-item"><span class="fab-label">Expense</span><div class="fab-icon" style="background:#FF3B30;">➖</div></a></div><div class="fab-main">+</div></div>""", unsafe_allow_html=True)
